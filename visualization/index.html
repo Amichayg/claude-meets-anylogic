@@ -6,69 +6,70 @@
 <title>Grain Terminal Simulation</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { background: #0a0e17; color: #e0e0e0; font-family: 'SF Mono', 'Fira Code', monospace; overflow: hidden; }
+  body { background: #dce4ec; color: #2a3040; font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace; overflow: hidden; }
   #canvas { position: fixed; top: 0; left: 0; z-index: 0; }
 
-  /* ── HUD overlay ── */
   #hud { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; }
   #hud > * { pointer-events: auto; }
 
   .panel {
-    background: rgba(10, 14, 23, 0.88);
-    border: 1px solid rgba(100, 140, 200, 0.25);
-    border-radius: 8px;
-    backdrop-filter: blur(12px);
+    background: rgba(255, 255, 255, 0.82);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 10px;
+    backdrop-filter: blur(20px);
     padding: 14px 18px;
+    box-shadow: 0 2px 20px rgba(0, 0, 0, 0.06);
   }
 
   #title-bar {
     position: absolute; top: 16px; left: 50%; transform: translateX(-50%);
-    text-align: center; padding: 10px 32px;
+    text-align: center; padding: 12px 40px;
   }
-  #title-bar h1 { font-size: 16px; font-weight: 600; letter-spacing: 1.5px; color: #8ab4f8; }
-  #title-bar p  { font-size: 11px; color: #667; margin-top: 4px; }
+  #title-bar h1 { font-size: 15px; font-weight: 700; letter-spacing: 3px; color: #1a5276; }
+  #title-bar p { font-size: 10px; color: #8a9ab0; margin-top: 5px; letter-spacing: 1px; }
 
   #kpi-bar {
     position: absolute; top: 16px; right: 16px;
-    display: flex; flex-direction: column; gap: 6px; min-width: 190px;
+    display: flex; flex-direction: column; gap: 4px; min-width: 200px;
   }
-  .kpi { display: flex; justify-content: space-between; font-size: 12px; padding: 6px 0; border-bottom: 1px solid rgba(100,140,200,0.1); }
-  .kpi-label { color: #778; }
-  .kpi-value { color: #8ab4f8; font-weight: 600; }
+  .kpi { display: flex; justify-content: space-between; font-size: 11px; padding: 5px 0; border-bottom: 1px solid rgba(0,0,0,0.05); }
+  .kpi-label { color: #7a8a9a; text-transform: uppercase; letter-spacing: 0.5px; font-size: 10px; }
+  .kpi-value { color: #1a5276; font-weight: 700; }
 
   #legend {
     position: absolute; bottom: 16px; left: 16px;
-    display: flex; gap: 16px; align-items: center; padding: 10px 18px;
+    display: flex; gap: 18px; align-items: center; padding: 10px 20px;
   }
-  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 11px; }
-  .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .legend-item { display: flex; align-items: center; gap: 7px; font-size: 10px; letter-spacing: 0.5px; color: #5a6a7a; }
+  .legend-dot { width: 8px; height: 8px; border-radius: 50%; box-shadow: 0 1px 4px rgba(0,0,0,0.15); }
 
   #appointment-panel {
     position: absolute; top: 16px; left: 16px;
-    max-width: 220px; font-size: 11px;
+    max-width: 220px; font-size: 10px;
   }
-  #appointment-panel h3 { font-size: 12px; color: #8ab4f8; margin-bottom: 8px; letter-spacing: 1px; }
-  .slot-row { display: flex; justify-content: space-between; padding: 3px 0; border-bottom: 1px solid rgba(100,140,200,0.07); }
-  .slot-time { color: #556; }
-  .slot-count { color: #8ab4f8; }
+  #appointment-panel h3 { font-size: 10px; color: #7a8a9a; margin-bottom: 8px; letter-spacing: 2px; text-transform: uppercase; }
+  .slot-row { display: flex; justify-content: space-between; padding: 3px 0; border-bottom: 1px solid rgba(0,0,0,0.04); }
+  .slot-time { color: #8a9ab0; }
+  .slot-count { font-weight: 700; }
 
   #controls {
     position: absolute; bottom: 16px; right: 16px;
-    display: flex; gap: 8px;
+    display: flex; gap: 6px;
   }
   #controls button {
-    background: rgba(138, 180, 248, 0.12); border: 1px solid rgba(138, 180, 248, 0.3);
-    color: #8ab4f8; padding: 8px 16px; border-radius: 6px; cursor: pointer;
-    font-family: inherit; font-size: 11px; letter-spacing: 0.5px; transition: all 0.2s;
+    background: rgba(26, 82, 118, 0.08); border: 1px solid rgba(26, 82, 118, 0.2);
+    color: #1a5276; padding: 8px 16px; border-radius: 6px; cursor: pointer;
+    font-family: inherit; font-size: 10px; letter-spacing: 1px; transition: all 0.3s;
+    text-transform: uppercase;
   }
-  #controls button:hover { background: rgba(138, 180, 248, 0.25); }
-  #controls button.active { background: rgba(138, 180, 248, 0.35); border-color: #8ab4f8; }
+  #controls button:hover { background: rgba(26, 82, 118, 0.15); }
+  #controls button.active { background: rgba(26, 82, 118, 0.2); border-color: #1a5276; }
 
   #flow-info {
     position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%);
-    text-align: center; font-size: 11px; padding: 8px 24px;
+    text-align: center; font-size: 10px; padding: 8px 28px; letter-spacing: 0.5px; color: #8a9ab0;
   }
-  #flow-info span { color: #8ab4f8; }
+  #flow-info span { color: #1a5276; font-weight: 600; }
 </style>
 </head>
 <body>
@@ -77,44 +78,44 @@
 
 <div id="hud">
   <div id="title-bar" class="panel">
-    <h1>GRAIN TERMINAL SIMULATION</h1>
-    <p>Truck Appointment Scheduling &middot; 4 Grain Types &middot; Real-time Flow</p>
+    <h1>GRAIN TERMINAL</h1>
+    <p>Discrete Event Simulation &middot; Appointment Scheduling &middot; Real-time</p>
   </div>
 
   <div id="appointment-panel" class="panel">
-    <h3>APPOINTMENT SLOTS</h3>
+    <h3>Appointment Slots</h3>
     <div id="slot-list"></div>
   </div>
 
   <div id="kpi-bar" class="panel">
-    <div class="kpi"><span class="kpi-label">Sim Time</span><span class="kpi-value" id="kpi-time">0:00</span></div>
-    <div class="kpi"><span class="kpi-label">Trucks In</span><span class="kpi-value" id="kpi-trucks">0</span></div>
-    <div class="kpi"><span class="kpi-label">Trains In</span><span class="kpi-value" id="kpi-trains">0</span></div>
-    <div class="kpi"><span class="kpi-label">Ships Loaded</span><span class="kpi-value" id="kpi-ships">0</span></div>
-    <div class="kpi" style="border-bottom:none;margin-top:4px;border-top:1px solid rgba(100,140,200,0.2);padding-top:8px;">
-      <span class="kpi-label">On-time</span><span class="kpi-value" style="color:#4caf50" id="kpi-ontime">0</span>
+    <div class="kpi"><span class="kpi-label">Time</span><span class="kpi-value" id="kpi-time">0:00</span></div>
+    <div class="kpi"><span class="kpi-label">Trucks</span><span class="kpi-value" id="kpi-trucks">0</span></div>
+    <div class="kpi"><span class="kpi-label">Trains</span><span class="kpi-value" id="kpi-trains">0</span></div>
+    <div class="kpi"><span class="kpi-label">Ships</span><span class="kpi-value" id="kpi-ships">0</span></div>
+    <div class="kpi" style="border-bottom:none;margin-top:3px;border-top:1px solid rgba(0,0,0,0.08);padding-top:6px;">
+      <span class="kpi-label">On-time</span><span class="kpi-value" style="color:#2e7d32" id="kpi-ontime">0</span>
     </div>
-    <div class="kpi"><span class="kpi-label">Early</span><span class="kpi-value" style="color:#ff9800" id="kpi-early">0</span></div>
-    <div class="kpi"><span class="kpi-label">Late</span><span class="kpi-value" style="color:#f44336" id="kpi-late">0</span></div>
-    <div class="kpi"><span class="kpi-label">No-show</span><span class="kpi-value" style="color:#9e9e9e" id="kpi-noshow">0</span></div>
+    <div class="kpi"><span class="kpi-label">Early</span><span class="kpi-value" style="color:#e65100" id="kpi-early">0</span></div>
+    <div class="kpi"><span class="kpi-label">Late</span><span class="kpi-value" style="color:#c62828" id="kpi-late">0</span></div>
+    <div class="kpi"><span class="kpi-label">No-show</span><span class="kpi-value" style="color:#78909c" id="kpi-noshow">0</span></div>
     <div class="kpi"><span class="kpi-label">Silo Fill</span><span class="kpi-value" id="kpi-fill">0%</span></div>
   </div>
 
   <div id="legend" class="panel">
-    <div class="legend-item"><div class="legend-dot" style="background:#fdd835"></div>Wheat</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#ff9800"></div>Corn</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#ef5350"></div>Barley</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#d4a06a"></div>Soybean</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#f9a825"></div>Wheat</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#ef6c00"></div>Corn</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#d32f2f"></div>Barley</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#a1887f"></div>Soybean</div>
   </div>
 
   <div id="controls">
-    <button id="btn-speed" onclick="toggleSpeed()">1x SPEED</button>
-    <button id="btn-pause" onclick="togglePause()">PAUSE</button>
-    <button id="btn-view" onclick="cycleView()">ROTATE VIEW</button>
+    <button id="btn-speed" onclick="toggleSpeed()">1x</button>
+    <button id="btn-pause" onclick="togglePause()">Pause</button>
+    <button id="btn-view" onclick="cycleView()">Orbit</button>
   </div>
 
   <div id="flow-info" class="panel">
-    <span>Trucks</span> &rarr; Parking &rarr; <span>Auto Silos</span> &rarr; Conveyors &rarr; <span>Main Silos</span> &rarr; Conveyors &rarr; <span>Ships</span>
+    <span>Trucks</span> &rarr; Parking &rarr; <span>Auto Silos</span> &rarr; <span>Main Silos</span> &rarr; <span>Ships</span>
   </div>
 </div>
 
@@ -130,15 +131,18 @@
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 
 // ── CONFIG ──
-const GRAIN_COLORS = [0xfdd835, 0xff9800, 0xef5350, 0xd4a06a];
-const GRAIN_NAMES  = ['Wheat', 'Corn', 'Barley', 'Soybean'];
-const SLOT_DURATION = 300;   // 5 min
+const GRAIN_COLORS = [0xf9a825, 0xef6c00, 0xd32f2f, 0xa1887f];
+const SLOT_DURATION = 300;
 const SLOT_TOLERANCE = 60;
 const MAX_PER_SLOT = 4;
 const NO_SHOW_TIMEOUT = 600;
-const TRUCK_INTERVAL = 30;   // every 30s sim-time
+const TRUCK_INTERVAL = 30;
 const TRAIN_INTERVAL = 800;
 const SHIP_INTERVAL = 1300;
 const SILO_CAPACITY = 5000;
@@ -147,132 +151,225 @@ const TRUCK_CAPACITY = 125;
 const TRAIN_CAPACITY = 1000;
 const BILGE_CAPACITY = 2000;
 
-let simTime = 0, paused = false, speedMult = 1;
-let autoRotate = false;
-
-// ── KPI STATE ──
+let simTime = 0, paused = false, speedMult = 1, autoRotate = false;
 const kpi = { trucks: 0, trains: 0, ships: 0, onTime: 0, early: 0, late: 0, noShow: 0 };
 
-// ── THREE SETUP ──
+// ── RENDERER ──
 const canvas = document.getElementById('canvas');
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 0.9;
+renderer.toneMappingExposure = 1.4;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x0a0e17);
-scene.fog = new THREE.FogExp2(0x0a0e17, 0.0025);
+scene.background = new THREE.Color(0x8fb8d8);
+scene.fog = new THREE.FogExp2(0x8fb8d8, 0.0018);
 
-const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.5, 500);
-camera.position.set(-60, 55, 80);
+const camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.5, 500);
+camera.position.set(-65, 50, 75);
 
 const controls = new OrbitControls(camera, canvas);
-controls.target.set(0, 5, 0);
+controls.target.set(0, 3, 0);
 controls.enableDamping = true;
-controls.dampingFactor = 0.05;
-controls.maxPolarAngle = Math.PI / 2.15;
+controls.dampingFactor = 0.04;
+controls.maxPolarAngle = Math.PI / 2.1;
 controls.minDistance = 20;
 controls.maxDistance = 180;
 controls.update();
 
+// ── POST-PROCESSING ──
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+
+const bloomPass = new UnrealBloomPass(
+  new THREE.Vector2(window.innerWidth, window.innerHeight),
+  0.15, 0.3, 0.9
+);
+composer.addPass(bloomPass);
+
+// Subtle vignette only
+const vignetteShader = {
+  uniforms: { tDiffuse: { value: null }, intensity: { value: 0.25 } },
+  vertexShader: `varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+  fragmentShader: `
+    uniform sampler2D tDiffuse; uniform float intensity; varying vec2 vUv;
+    void main() {
+      vec4 col = texture2D(tDiffuse, vUv);
+      vec2 q = vUv - 0.5;
+      col.rgb *= 1.0 - dot(q, q) * intensity;
+      gl_FragColor = col;
+    }
+  `
+};
+composer.addPass(new ShaderPass(vignetteShader));
+
 // ── LIGHTS ──
-const ambientLight = new THREE.AmbientLight(0x334466, 0.6);
-scene.add(ambientLight);
+const hemiLight = new THREE.HemisphereLight(0x87ceeb, 0x98b486, 1.2);
+scene.add(hemiLight);
 
-const dirLight = new THREE.DirectionalLight(0xffeedd, 1.2);
-dirLight.position.set(40, 60, 30);
-dirLight.castShadow = true;
-dirLight.shadow.camera.left = -80;
-dirLight.shadow.camera.right = 80;
-dirLight.shadow.camera.top = 80;
-dirLight.shadow.camera.bottom = -80;
-dirLight.shadow.mapSize.set(2048, 2048);
-scene.add(dirLight);
+const sunLight = new THREE.DirectionalLight(0xfff5e0, 2.0);
+sunLight.position.set(50, 80, 40);
+sunLight.castShadow = true;
+sunLight.shadow.camera.left = -90;
+sunLight.shadow.camera.right = 90;
+sunLight.shadow.camera.top = 90;
+sunLight.shadow.camera.bottom = -90;
+sunLight.shadow.mapSize.set(2048, 2048);
+sunLight.shadow.bias = -0.001;
+sunLight.shadow.normalBias = 0.02;
+scene.add(sunLight);
 
-const rimLight = new THREE.DirectionalLight(0x4466aa, 0.4);
-rimLight.position.set(-30, 20, -40);
-scene.add(rimLight);
+const fillLight = new THREE.DirectionalLight(0xaaccee, 0.5);
+fillLight.position.set(-40, 30, -30);
+scene.add(fillLight);
+
+const bounceLight = new THREE.DirectionalLight(0xffeedd, 0.3);
+bounceLight.position.set(0, 5, 50);
+scene.add(bounceLight);
 
 // ── MATERIALS ──
-const matGround    = new THREE.MeshStandardMaterial({ color: 0x1a1f2e, roughness: 0.95 });
-const matConcrete  = new THREE.MeshStandardMaterial({ color: 0x2a2f3e, roughness: 0.85 });
-const matSiloShell = new THREE.MeshStandardMaterial({ color: 0x404858, roughness: 0.6, metalness: 0.3 });
-const matAutoSilo  = new THREE.MeshStandardMaterial({ color: 0x354050, roughness: 0.7, metalness: 0.2 });
-const matConveyor  = new THREE.MeshStandardMaterial({ color: 0x556070, roughness: 0.5, metalness: 0.4 });
-const matWater     = new THREE.MeshStandardMaterial({ color: 0x0d2847, roughness: 0.3, metalness: 0.1 });
-const matPier      = new THREE.MeshStandardMaterial({ color: 0x3a3228, roughness: 0.9 });
-const matShipHull  = new THREE.MeshStandardMaterial({ color: 0x2c3e50, roughness: 0.6, metalness: 0.4 });
-const matShipDeck  = new THREE.MeshStandardMaterial({ color: 0x5d4e37, roughness: 0.8 });
-const matRail      = new THREE.MeshStandardMaterial({ color: 0x555555, roughness: 0.4, metalness: 0.7 });
-const matTruckBody = new THREE.MeshStandardMaterial({ color: 0x607080, roughness: 0.6, metalness: 0.3 });
-const matRoad      = new THREE.MeshStandardMaterial({ color: 0x1e222e, roughness: 0.95 });
-const matGlow      = (hex) => new THREE.MeshStandardMaterial({ color: hex, emissive: hex, emissiveIntensity: 0.3, roughness: 0.5 });
+const matGlow = (hex, intensity = 0.2) => new THREE.MeshStandardMaterial({
+  color: hex, emissive: hex, emissiveIntensity: intensity, roughness: 0.5
+});
+
+const matGround = new THREE.MeshStandardMaterial({ color: 0x6b8f5e, roughness: 0.95 });
+const matConcrete = new THREE.MeshStandardMaterial({ color: 0xb0b8bf, roughness: 0.85 });
+const matSiloShell = new THREE.MeshStandardMaterial({ color: 0xc8ccd0, roughness: 0.4, metalness: 0.3 });
+const matAutoSilo = new THREE.MeshStandardMaterial({ color: 0x8a9aa8, roughness: 0.5, metalness: 0.3 });
+const matConveyor = new THREE.MeshStandardMaterial({ color: 0x6a7a88, roughness: 0.4, metalness: 0.5 });
+const matPier = new THREE.MeshStandardMaterial({ color: 0x8a7a6a, roughness: 0.85 });
+const matShipHull = new THREE.MeshStandardMaterial({ color: 0x2c3e50, roughness: 0.4, metalness: 0.4 });
+const matShipDeck = new THREE.MeshStandardMaterial({ color: 0x8b7355, roughness: 0.7 });
+const matRail = new THREE.MeshStandardMaterial({ color: 0x6a6a70, roughness: 0.3, metalness: 0.8 });
+const matRoad = new THREE.MeshStandardMaterial({ color: 0x4a4e55, roughness: 0.9 });
+const matRoadLine = new THREE.MeshStandardMaterial({ color: 0xe8e8e0, roughness: 0.8 });
+
+const TRUCK_COLORS = [0x2962ff, 0xd32f2f, 0x2e7d32, 0xf57f17, 0x6a1b9a, 0x00838f, 0xc62828, 0x1565c0];
+
+// ── WATER SHADER ──
+const waterGeo = new THREE.PlaneGeometry(70, 160, 80, 80);
+const waterMat = new THREE.ShaderMaterial({
+  uniforms: {
+    uTime: { value: 0 },
+    uColor1: { value: new THREE.Color(0x2980b9) },
+    uColor2: { value: new THREE.Color(0x3498db) },
+    uHighlight: { value: new THREE.Color(0x85c1e9) },
+    uSunDir: { value: new THREE.Vector3(0.5, 0.8, 0.3).normalize() }
+  },
+  vertexShader: `
+    uniform float uTime;
+    varying vec2 vUv;
+    varying vec3 vNormal;
+    varying vec3 vWorldPos;
+    varying float vWave;
+    void main() {
+      vUv = uv;
+      vec3 pos = position;
+      float w = sin(pos.x * 0.25 + uTime * 1.2) * cos(pos.y * 0.18 + uTime * 0.8) * 0.35;
+      w += sin(pos.x * 0.6 + pos.y * 0.4 + uTime * 1.8) * 0.18;
+      w += sin(pos.x * 1.2 + uTime * 2.5) * 0.08;
+      pos.z = w;
+      vWave = w;
+      // Approximate normal
+      float dx = cos(pos.x * 0.25 + uTime * 1.2) * 0.25 * cos(pos.y * 0.18 + uTime * 0.8) * 0.35;
+      vNormal = normalize(vec3(-dx, 1.0, 0.0));
+      vWorldPos = (modelMatrix * vec4(pos, 1.0)).xyz;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+    }
+  `,
+  fragmentShader: `
+    uniform vec3 uColor1, uColor2, uHighlight, uSunDir;
+    uniform float uTime;
+    varying vec2 vUv;
+    varying vec3 vNormal;
+    varying vec3 vWorldPos;
+    varying float vWave;
+    void main() {
+      vec3 col = mix(uColor1, uColor2, vUv.x * 0.4 + 0.3 + vWave * 0.3);
+      // Sun specular
+      float spec = pow(max(0.0, dot(reflect(-uSunDir, vNormal), normalize(vec3(0.0, 1.0, 0.5)))), 40.0) * 0.6;
+      col += uHighlight * spec;
+      // Foam on wave peaks
+      float foam = smoothstep(0.25, 0.4, vWave) * 0.3;
+      col = mix(col, vec3(0.9, 0.95, 1.0), foam);
+      // Caustics
+      float caustic = sin(vUv.x * 50.0 + uTime * 2.5) * sin(vUv.y * 40.0 + uTime * 2.0) * 0.03;
+      col += caustic;
+      gl_FragColor = vec4(col, 0.9);
+    }
+  `,
+  transparent: true, side: THREE.DoubleSide
+});
+const waterMesh = new THREE.Mesh(waterGeo, waterMat);
+waterMesh.rotation.x = -Math.PI / 2;
+waterMesh.position.set(60, -0.3, 0);
+scene.add(waterMesh);
 
 // ── HELPERS ──
 function box(w, h, d, mat) {
-  const g = new THREE.BoxGeometry(w, h, d);
-  const m = new THREE.Mesh(g, mat);
-  m.castShadow = true; m.receiveShadow = true;
-  return m;
+  const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+  m.castShadow = true; m.receiveShadow = true; return m;
 }
-function cylinder(rT, rB, h, mat, seg = 24) {
-  const g = new THREE.CylinderGeometry(rT, rB, h, seg);
-  const m = new THREE.Mesh(g, mat);
-  m.castShadow = true; m.receiveShadow = true;
-  return m;
+function cylinder(rT, rB, h, mat, seg = 32) {
+  const m = new THREE.Mesh(new THREE.CylinderGeometry(rT, rB, h, seg), mat);
+  m.castShadow = true; m.receiveShadow = true; return m;
 }
 
-// ── BUILD GROUND ──
+// ── GROUND ──
 const ground = box(200, 0.3, 160, matGround);
-ground.position.y = -0.15;
-ground.receiveShadow = true;
+ground.position.y = -0.15; ground.receiveShadow = true;
 scene.add(ground);
 
-// Water area (right side)
-const water = box(60, 0.25, 160, matWater);
-water.position.set(55, -0.05, 0);
-scene.add(water);
-
 // ── ROAD ──
-const road = box(6, 0.15, 120, matRoad);
-road.position.set(-55, 0.08, 0);
+const road = box(7, 0.12, 120, matRoad);
+road.position.set(-55, 0.06, 0);
 scene.add(road);
-// Road line
-const lineGeo = new THREE.BoxGeometry(0.15, 0.16, 120);
-const lineMat = new THREE.MeshStandardMaterial({ color: 0x3a3f50, emissive: 0x3a3f50, emissiveIntensity: 0.2 });
-const roadLine = new THREE.Mesh(lineGeo, lineMat);
-roadLine.position.set(-55, 0.12, 0);
-scene.add(roadLine);
+// Road edges (white lines)
+for (const offset of [-3.3, 3.3]) {
+  const edge = box(0.15, 0.07, 120, matRoadLine);
+  edge.position.set(-55 + offset, 0.13, 0);
+  scene.add(edge);
+}
+// Center dashes (yellow)
+const dashMat = new THREE.MeshStandardMaterial({ color: 0xf0c040, roughness: 0.7 });
+for (let i = -28; i <= 28; i++) {
+  const dash = box(0.12, 0.07, 1.8, dashMat);
+  dash.position.set(-55, 0.13, i * 2.2);
+  scene.add(dash);
+}
 
-// ── PARKING LOTS ──
+// ── PARKING ──
 const parkingGroup = new THREE.Group();
 for (let i = 0; i < 4; i++) {
-  const lot = box(8, 0.12, 12, matConcrete);
-  lot.position.set(-44, 0.06, -22.5 + i * 15);
+  const lot = box(8, 0.08, 12, matConcrete);
+  lot.position.set(-44, 0.04, -22.5 + i * 15);
   parkingGroup.add(lot);
-  // parking lines
   for (let j = 0; j < 4; j++) {
-    const pLine = box(0.08, 0.13, 5, lineMat);
-    pLine.position.set(-44 + (j - 1.5) * 2, 0.14, -22.5 + i * 15);
+    const pLine = box(0.08, 0.06, 5, matRoadLine);
+    pLine.position.set(-44 + (j - 1.5) * 2, 0.1, -22.5 + i * 15);
     parkingGroup.add(pLine);
   }
 }
 scene.add(parkingGroup);
 
-// ── AUTO SILOS (4 intermediate) ──
+// ── AUTO SILOS ──
 const autoSilos = [];
 const autoSiloGroup = new THREE.Group();
 for (let i = 0; i < 4; i++) {
-  const silo = cylinder(2.2, 2.2, 8, matAutoSilo);
+  const silo = cylinder(2.2, 2.4, 8, matAutoSilo);
   silo.position.set(-30, 4, -15 + i * 10);
   autoSiloGroup.add(silo);
+  // Top rim
+  const rim = new THREE.Mesh(new THREE.TorusGeometry(2.3, 0.12, 8, 32), matConveyor);
+  rim.rotation.x = Math.PI / 2;
+  rim.position.set(-30, 8.05, -15 + i * 10);
+  autoSiloGroup.add(rim);
 
-  // Fill indicator (inner cylinder, starts empty)
-  const fillMat = matGlow(GRAIN_COLORS[0]);
+  const fillMat = matGlow(GRAIN_COLORS[0], 0.25);
   const fill = cylinder(2.0, 2.0, 0.01, fillMat);
   fill.position.set(-30, 0.2, -15 + i * 10);
   autoSiloGroup.add(fill);
@@ -281,35 +378,60 @@ for (let i = 0; i < 4; i++) {
 }
 scene.add(autoSiloGroup);
 
-// ── CONVEYOR: AUTO → MAIN ──
-const convAtoM = box(14, 0.4, 1.2, matConveyor);
-convAtoM.position.set(-17, 2, 0);
-scene.add(convAtoM);
-// conveyor supports
-for (let i = -1; i <= 1; i++) {
-  const sup = box(0.3, 4, 0.3, matConveyor);
-  sup.position.set(-17 + i * 6, 1, 0);
-  scene.add(sup);
+// ── CONVEYORS ──
+function makeConveyor(x, z, length) {
+  const group = new THREE.Group();
+  const belt = box(length, 0.3, 1.0, matConveyor);
+  belt.position.y = 2;
+  group.add(belt);
+  // Side rails
+  const railMat = new THREE.MeshStandardMaterial({ color: 0x5a6a78, roughness: 0.4, metalness: 0.6 });
+  for (const s of [-0.45, 0.45]) {
+    const strip = box(length, 0.15, 0.08, railMat);
+    strip.position.set(0, 2.2, s);
+    group.add(strip);
+  }
+  // Roller marks
+  for (let r = -length / 2 + 1; r < length / 2; r += 1.5) {
+    const roller = box(0.06, 0.06, 0.9, railMat);
+    roller.position.set(r, 2.16, 0);
+    group.add(roller);
+  }
+  const nSup = Math.max(2, Math.floor(length / 6));
+  for (let i = 0; i < nSup; i++) {
+    const t = (i / (nSup - 1)) - 0.5;
+    const sup = box(0.25, 4, 0.25, matConveyor);
+    sup.position.set(t * length, 0.5, 0);
+    group.add(sup);
+  }
+  group.position.set(x, 0, z);
+  return group;
 }
+scene.add(makeConveyor(-17, 0, 14));
+scene.add(makeConveyor(25, -5, 18));
+scene.add(makeConveyor(25, 15, 18));
 
-// ── MAIN SILOS (4 x 4 = 16) ──
+// ── MAIN SILOS ──
 const mainSilos = [];
 const mainSiloGroup = new THREE.Group();
 for (let row = 0; row < 4; row++) {
   for (let col = 0; col < 4; col++) {
-    const silo = cylinder(2.5, 2.5, 12, matSiloShell);
-    const x = -4 + col * 6.5;
-    const z = -15 + row * 10;
+    const x = -4 + col * 6.5, z = -15 + row * 10;
+    const silo = cylinder(2.5, 2.6, 12, matSiloShell);
     silo.position.set(x, 6, z);
     mainSiloGroup.add(silo);
-
-    // Roof cone
-    const roof = cylinder(0, 2.8, 2, matSiloShell);
-    roof.position.set(x, 12.5, z);
+    const roof = cylinder(0, 2.9, 2.2, matSiloShell);
+    roof.position.set(x, 12.6, z);
     mainSiloGroup.add(roof);
+    // Horizontal bands
+    for (const h of [3, 6, 9]) {
+      const band = new THREE.Mesh(new THREE.TorusGeometry(2.55, 0.06, 8, 32), matConveyor);
+      band.rotation.x = Math.PI / 2;
+      band.position.set(x, h, z);
+      mainSiloGroup.add(band);
+    }
 
-    // Fill indicator
-    const fillMat = matGlow(GRAIN_COLORS[0]);
+    const fillMat = matGlow(GRAIN_COLORS[0], 0.25);
     const fill = cylinder(2.3, 2.3, 0.01, fillMat);
     fill.position.set(x, 0.2, z);
     mainSiloGroup.add(fill);
@@ -319,78 +441,133 @@ for (let row = 0; row < 4; row++) {
 }
 scene.add(mainSiloGroup);
 
-// ── CONVEYOR: MAIN → PIER ──
-const convMtoP = box(18, 0.4, 1.2, matConveyor);
-convMtoP.position.set(25, 3, 0);
-scene.add(convMtoP);
-for (let i = -1; i <= 1; i++) {
-  const sup = box(0.3, 6, 0.3, matConveyor);
-  sup.position.set(25 + i * 8, 1.5, 0);
-  scene.add(sup);
-}
-// Second conveyor for pier 2
-const convMtoP2 = box(18, 0.4, 1.2, matConveyor);
-convMtoP2.position.set(25, 3, 20);
-scene.add(convMtoP2);
-
 // ── RAIL TRACK ──
 const railGroup = new THREE.Group();
-const rail1 = box(0.15, 0.2, 120, matRail);
-rail1.position.set(-30, 0.1, 0);
-railGroup.add(rail1);
-const rail2 = box(0.15, 0.2, 120, matRail);
-rail2.position.set(-28, 0.1, 0);
-railGroup.add(rail2);
-// ties
+for (const offset of [-1, 1]) {
+  const rail = box(0.12, 0.18, 120, matRail);
+  rail.position.set(offset, 0.09, 0);
+  railGroup.add(rail);
+}
 for (let i = -30; i <= 30; i++) {
-  const tie = box(4, 0.08, 0.4, matRail);
-  tie.position.set(-29, 0.04, i * 2);
+  const tieMat = new THREE.MeshStandardMaterial({ color: 0x5a4a3a, roughness: 0.9 });
+  const tie = box(3.5, 0.08, 0.35, tieMat);
+  tie.position.set(0, 0.03, i * 2);
   railGroup.add(tie);
 }
-// move track behind auto silos
-railGroup.position.set(-10, 0, 0);
+railGroup.position.set(-39, 0, 0);
 scene.add(railGroup);
 
 // ── PIERS ──
 const pierGroup = new THREE.Group();
 for (let i = 0; i < 2; i++) {
-  const pier = box(16, 0.6, 4, matPier);
-  pier.position.set(42, 0.3, -10 + i * 20);
+  const z = -10 + i * 20;
+  const pier = box(16, 0.5, 4, matPier);
+  pier.position.set(42, 0.25, z);
   pierGroup.add(pier);
-  // pier supports
+  // Bollards
+  for (let j = -3; j <= 3; j += 2) {
+    const bollard = cylinder(0.15, 0.18, 0.5, matConveyor);
+    bollard.position.set(42 + j * 2, 0.75, z + 2.1);
+    pierGroup.add(bollard);
+  }
   for (let j = -2; j <= 2; j++) {
-    const ps = box(0.6, 2, 0.6, matPier);
-    ps.position.set(42 + j * 3.5, -0.5, -10 + i * 20);
+    const ps = box(0.5, 2.5, 0.5, matPier);
+    ps.position.set(42 + j * 3.5, -0.8, z);
     pierGroup.add(ps);
   }
 }
 scene.add(pierGroup);
 
+// ── CLOUDS (simple billboard planes) ──
+const cloudMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.35, depthWrite: false });
+for (let i = 0; i < 12; i++) {
+  const w = 15 + Math.random() * 25, h = 3 + Math.random() * 4;
+  const cloud = new THREE.Mesh(new THREE.PlaneGeometry(w, h), cloudMat);
+  cloud.position.set((Math.random() - 0.5) * 200, 50 + Math.random() * 30, (Math.random() - 0.5) * 150);
+  cloud.rotation.x = -Math.PI / 2.5;
+  cloud.userData.speed = 0.3 + Math.random() * 0.5;
+  scene.add(cloud);
+}
+
+// ── GRAIN PARTICLES ──
+const particleCount = 1500;
+const particleGeo = new THREE.BufferGeometry();
+const particlePositions = new Float32Array(particleCount * 3);
+const particleColors = new Float32Array(particleCount * 3);
+const particleVelocities = [];
+const particleLife = new Float32Array(particleCount);
+
+for (let i = 0; i < particleCount; i++) {
+  particlePositions[i * 3 + 1] = -100;
+  particleColors[i * 3] = 1; particleColors[i * 3 + 1] = 1; particleColors[i * 3 + 2] = 0;
+  particleLife[i] = 0;
+  particleVelocities.push(new THREE.Vector3());
+}
+particleGeo.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
+particleGeo.setAttribute('color', new THREE.BufferAttribute(particleColors, 3));
+
+const particleMat = new THREE.PointsMaterial({
+  size: 0.45, vertexColors: true, transparent: true, opacity: 0.85,
+  blending: THREE.NormalBlending, depthWrite: false
+});
+scene.add(new THREE.Points(particleGeo, particleMat));
+
+let nextParticle = 0;
+function emitParticle(pos, vel, color) {
+  const i = nextParticle;
+  nextParticle = (nextParticle + 1) % particleCount;
+  particlePositions[i * 3] = pos.x + (Math.random() - 0.5) * 0.5;
+  particlePositions[i * 3 + 1] = pos.y + (Math.random() - 0.5) * 0.3;
+  particlePositions[i * 3 + 2] = pos.z + (Math.random() - 0.5) * 0.5;
+  const c = new THREE.Color(color);
+  particleColors[i * 3] = c.r; particleColors[i * 3 + 1] = c.g; particleColors[i * 3 + 2] = c.b;
+  particleVelocities[i].copy(vel);
+  particleLife[i] = 1.0 + Math.random() * 0.5;
+}
+
+function updateParticles(dt) {
+  for (let i = 0; i < particleCount; i++) {
+    if (particleLife[i] > 0) {
+      particleLife[i] -= dt * 0.6;
+      particlePositions[i * 3] += particleVelocities[i].x * dt;
+      particlePositions[i * 3 + 1] += particleVelocities[i].y * dt;
+      particlePositions[i * 3 + 2] += particleVelocities[i].z * dt;
+      particleVelocities[i].y -= 2.5 * dt;
+      if (particleLife[i] <= 0) particlePositions[i * 3 + 1] = -100;
+    }
+  }
+  particleGeo.attributes.position.needsUpdate = true;
+  particleGeo.attributes.color.needsUpdate = true;
+}
+
 // ── SHIPS ──
 function createShip(z) {
   const ship = new THREE.Group();
-  // Hull
   const hull = box(22, 3, 6, matShipHull);
-  hull.position.y = 1.5;
-  ship.add(hull);
-  // Deck
+  hull.position.y = 1.5; ship.add(hull);
   const deck = box(20, 0.3, 5.5, matShipDeck);
-  deck.position.y = 3.15;
-  ship.add(deck);
-  // Bridge
-  const bridge = box(4, 4, 4, matShipHull);
-  bridge.position.set(-8, 5, 0);
-  ship.add(bridge);
-  // Bilges (5 cargo holds)
+  deck.position.y = 3.15; ship.add(deck);
+  const bridgeMat = new THREE.MeshStandardMaterial({ color: 0xeeeeee, roughness: 0.5 });
+  const bridge = box(4, 4, 4, bridgeMat);
+  bridge.position.set(-8, 5, 0); ship.add(bridge);
+  // Windows
+  const winMat = new THREE.MeshStandardMaterial({ color: 0x88ccff, roughness: 0.2, metalness: 0.3 });
+  for (const zz of [2.05, -2.05]) {
+    const win = box(3.2, 1.2, 0.1, winMat);
+    win.position.set(-8, 5.5, zz); ship.add(win);
+  }
+  // Funnel
+  const funnelMat = new THREE.MeshStandardMaterial({ color: 0xcc3333, roughness: 0.5 });
+  const funnel = cylinder(0.6, 0.7, 2, funnelMat);
+  funnel.position.set(-9.5, 8, 0); ship.add(funnel);
+
   const bilges = [];
   for (let i = 0; i < 5; i++) {
-    const bilgeShell = box(3, 2.5, 4.5, new THREE.MeshStandardMaterial({ color: 0x1a2530, roughness: 0.7 }));
-    bilgeShell.position.set(-4 + i * 3.2, 3.4, 0);
-    ship.add(bilgeShell);
-    const bilgeFillMat = matGlow(GRAIN_COLORS[0]);
+    const bilgeShell = box(3, 2.5, 4.5, new THREE.MeshStandardMaterial({ color: 0x3a4a5a, roughness: 0.6 }));
+    bilgeShell.position.set(-4 + i * 3.2, 3.4, 0); ship.add(bilgeShell);
+    const bilgeFillMat = matGlow(GRAIN_COLORS[0], 0.3);
     const bilgeFill = box(2.6, 0.01, 4.0, bilgeFillMat);
-    bilgeFill.position.set(-4 + i * 3.2, 2.2, 0);
-    ship.add(bilgeFill);
+    bilgeFill.position.set(-4 + i * 3.2, 2.2, 0); ship.add(bilgeFill);
     bilges.push({ fill: bilgeFill, fillMat: bilgeFillMat, amount: 0, capacity: BILGE_CAPACITY, grainType: -1 });
   }
   ship.position.set(56, -0.5, z);
@@ -402,11 +579,10 @@ const ships = [];
 function spawnShip(pierIdx) {
   const z = -10 + pierIdx * 20;
   const ship = createShip(z);
-  ship.position.x = 90; // start off-screen
+  ship.position.x = 95;
   ship.userData.targetX = 56;
   ship.userData.pierIdx = pierIdx;
   ship.userData.arriving = true;
-  // Assign random grain types to bilges
   ship.userData.bilges.forEach(b => {
     b.grainType = Math.floor(Math.random() * 4);
     b.fillMat.color.setHex(GRAIN_COLORS[b.grainType]);
@@ -419,200 +595,146 @@ function spawnShip(pierIdx) {
 // ── TRUCKS ──
 function createTruck(grainType) {
   const truck = new THREE.Group();
-  const body = box(4, 1.5, 2, matTruckBody);
-  body.position.y = 1.2;
-  truck.add(body);
-  const cab = box(1.5, 1.8, 2, new THREE.MeshStandardMaterial({ color: 0x708090, roughness: 0.5, metalness: 0.3 }));
-  cab.position.set(1.6, 1.4, 0);
-  truck.add(cab);
-  const cargo = box(2.2, 1.2, 1.8, matGlow(GRAIN_COLORS[grainType]));
-  cargo.position.set(-0.3, 2.3, 0);
-  truck.add(cargo);
-  // Wheels
-  const wheelMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.8 });
-  [[-1.2, 0.4, 1.1], [-1.2, 0.4, -1.1], [1.2, 0.4, 1.1], [1.2, 0.4, -1.1]].forEach(([x,y,z]) => {
-    const w = cylinder(0.35, 0.35, 0.3, wheelMat, 12);
-    w.rotation.x = Math.PI / 2;
-    w.position.set(x, y, z);
-    truck.add(w);
-  });
+  const truckColor = TRUCK_COLORS[Math.floor(Math.random() * TRUCK_COLORS.length)];
+  const cabMat = new THREE.MeshStandardMaterial({ color: truckColor, roughness: 0.35, metalness: 0.3 });
+
+  // Chassis
+  const chassis = box(4.2, 0.4, 2, new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 0.7 }));
+  chassis.position.y = 0.6; truck.add(chassis);
+  // Cab
+  const cab = box(1.6, 1.6, 1.9, cabMat);
+  cab.position.set(1.5, 1.6, 0); truck.add(cab);
+  // Windshield
+  const glassMat = new THREE.MeshStandardMaterial({ color: 0xaaddff, roughness: 0.1, metalness: 0.2, transparent: true, opacity: 0.7 });
+  const windshield = box(0.05, 0.9, 1.6, glassMat);
+  windshield.position.set(2.33, 1.8, 0); truck.add(windshield);
+  // Cargo bed
+  const bedMat = new THREE.MeshStandardMaterial({ color: 0x555555, roughness: 0.6, metalness: 0.3 });
+  const bed = box(2.5, 0.1, 1.9, bedMat);
+  bed.position.set(-0.4, 0.85, 0); truck.add(bed);
+  // Cargo (grain)
+  const cargo = box(2.3, 1.1, 1.75, matGlow(GRAIN_COLORS[grainType], 0.2));
+  cargo.position.set(-0.4, 1.45, 0); truck.add(cargo);
+  // Side panels
+  for (const s of [-0.95, 0.95]) {
+    const panel = box(2.5, 0.6, 0.05, bedMat);
+    panel.position.set(-0.4, 1.15, s); truck.add(panel);
+  }
+  const backPanel = box(0.05, 0.6, 1.9, bedMat);
+  backPanel.position.set(-1.65, 1.15, 0); truck.add(backPanel);
+
+  // Wheels (with visible tread)
+  const wheelMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.9 });
+  const hubMat = new THREE.MeshStandardMaterial({ color: 0x888888, roughness: 0.3, metalness: 0.7 });
+  const wheelPositions = [[-1.2, 0.4, 1.05], [-1.2, 0.4, -1.05], [1.3, 0.4, 1.05], [1.3, 0.4, -1.05]];
+  const wheels = [];
+  for (const [wx, wy, wz] of wheelPositions) {
+    const wheelGroup = new THREE.Group();
+    const tire = new THREE.Mesh(new THREE.TorusGeometry(0.32, 0.12, 8, 16), wheelMat);
+    wheelGroup.add(tire);
+    const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.22, 8), hubMat);
+    hub.rotation.x = Math.PI / 2;
+    wheelGroup.add(hub);
+    // Spokes
+    for (let sp = 0; sp < 5; sp++) {
+      const spoke = box(0.28, 0.03, 0.03, hubMat);
+      spoke.rotation.z = (sp / 5) * Math.PI;
+      wheelGroup.add(spoke);
+    }
+    wheelGroup.rotation.y = Math.PI / 2;
+    wheelGroup.position.set(wx, wy, wz);
+    truck.add(wheelGroup);
+    wheels.push(wheelGroup);
+  }
+
+  // Exhaust pipe
+  const exhaustMat = new THREE.MeshStandardMaterial({ color: 0x555555, roughness: 0.4, metalness: 0.6 });
+  const exhaust = cylinder(0.06, 0.06, 0.8, exhaustMat);
+  exhaust.position.set(0.8, 2.4, 0.9);
+  truck.add(exhaust);
+
   truck.userData = {
     grainType, capacity: TRUCK_CAPACITY, load: TRUCK_CAPACITY,
-    state: 'arriving', // arriving, parking, queuing, unloading, leaving
-    appointmentTime: 0, arrivalTime: 0, priority: 5,
-    punctuality: 'early', // on-time, early, late
-    targetPos: new THREE.Vector3(), speed: 15, waitTime: 0,
-    parkingSlot: null, autoSiloIdx: -1
+    state: 'arriving', appointmentTime: 0, arrivalTime: 0, priority: 5,
+    punctuality: 'early', targetPos: new THREE.Vector3(), speed: 15, waitTime: 0,
+    parkingSlot: null, autoSiloIdx: -1,
+    wheels, wheelSpeed: 0, bouncePhase: Math.random() * Math.PI * 2,
+    cargo
   };
   return truck;
 }
-
 const activeTrucks = [];
 
 // ── TRAINS ──
 function createTrain(grainType) {
   const train = new THREE.Group();
-  // Locomotive
-  const loco = box(5, 3, 2.5, new THREE.MeshStandardMaterial({ color: 0x8b0000, roughness: 0.5, metalness: 0.4 }));
-  loco.position.set(0, 1.8, 0);
-  train.add(loco);
-  const chimney = cylinder(0.3, 0.4, 1.2, matRail);
-  chimney.position.set(1.5, 3.5, 0);
-  train.add(chimney);
-  // 8 hopper cars
+  const locoMat = new THREE.MeshStandardMaterial({ color: 0xcc2200, roughness: 0.4, metalness: 0.4 });
+  const loco = box(5, 3, 2.5, locoMat);
+  loco.position.set(0, 1.8, 0); train.add(loco);
+  // Loco details
+  const locoStripe = box(5.05, 0.3, 2.55, new THREE.MeshStandardMaterial({ color: 0xffcc00, roughness: 0.5 }));
+  locoStripe.position.set(0, 1.3, 0); train.add(locoStripe);
+  const chimney = cylinder(0.25, 0.35, 1, matConveyor);
+  chimney.position.set(1.8, 3.5, 0); train.add(chimney);
+
   for (let i = 0; i < 8; i++) {
-    const car = box(3.5, 2, 2.2, new THREE.MeshStandardMaterial({ color: 0x4a4a4a, roughness: 0.7, metalness: 0.3 }));
-    car.position.set(-4.5 - i * 4, 1.3, 0);
-    train.add(car);
-    const grain = box(3.0, 0.8, 1.8, matGlow(GRAIN_COLORS[grainType]));
-    grain.position.set(-4.5 - i * 4, 2.5, 0);
-    train.add(grain);
+    const car = box(3.5, 2, 2.2, new THREE.MeshStandardMaterial({ color: 0x4a5060, roughness: 0.5, metalness: 0.3 }));
+    car.position.set(-4.5 - i * 4, 1.3, 0); train.add(car);
+    const grain = box(3.0, 0.8, 1.8, matGlow(GRAIN_COLORS[grainType], 0.2));
+    grain.position.set(-4.5 - i * 4, 2.5, 0); train.add(grain);
   }
-  train.userData = {
-    grainType, state: 'arriving', load: TRAIN_CAPACITY,
-    targetZ: 0, grainMeshes: []
-  };
+  train.userData = { grainType, state: 'arriving', load: TRAIN_CAPACITY, targetZ: 0 };
   return train;
 }
-
 let activeTrain = null;
-
-// ── PARTICLE SYSTEM for grain flow ──
-const particleCount = 600;
-const particleGeo = new THREE.BufferGeometry();
-const particlePositions = new Float32Array(particleCount * 3);
-const particleColors = new Float32Array(particleCount * 3);
-const particleAlphas = new Float32Array(particleCount);
-const particleVelocities = [];
-const particleLife = new Float32Array(particleCount);
-
-for (let i = 0; i < particleCount; i++) {
-  particlePositions[i * 3] = 0;
-  particlePositions[i * 3 + 1] = -100;
-  particlePositions[i * 3 + 2] = 0;
-  particleColors[i * 3] = 1;
-  particleColors[i * 3 + 1] = 1;
-  particleColors[i * 3 + 2] = 0;
-  particleAlphas[i] = 0;
-  particleLife[i] = 0;
-  particleVelocities.push(new THREE.Vector3());
-}
-
-particleGeo.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
-particleGeo.setAttribute('color', new THREE.BufferAttribute(particleColors, 3));
-
-const particleMat = new THREE.PointsMaterial({
-  size: 0.4, vertexColors: true, transparent: true, opacity: 0.8,
-  blending: THREE.AdditiveBlending, depthWrite: false
-});
-const particles = new THREE.Points(particleGeo, particleMat);
-scene.add(particles);
-
-let nextParticle = 0;
-function emitParticle(pos, vel, color) {
-  const i = nextParticle;
-  nextParticle = (nextParticle + 1) % particleCount;
-  particlePositions[i * 3] = pos.x;
-  particlePositions[i * 3 + 1] = pos.y;
-  particlePositions[i * 3 + 2] = pos.z;
-  const c = new THREE.Color(color);
-  particleColors[i * 3] = c.r;
-  particleColors[i * 3 + 1] = c.g;
-  particleColors[i * 3 + 2] = c.b;
-  particleVelocities[i].copy(vel);
-  particleLife[i] = 1.0;
-}
-
-function updateParticles(dt) {
-  for (let i = 0; i < particleCount; i++) {
-    if (particleLife[i] > 0) {
-      particleLife[i] -= dt * 0.8;
-      particlePositions[i * 3] += particleVelocities[i].x * dt;
-      particlePositions[i * 3 + 1] += particleVelocities[i].y * dt;
-      particlePositions[i * 3 + 2] += particleVelocities[i].z * dt;
-      particleVelocities[i].y -= 3 * dt; // gravity
-      if (particleLife[i] <= 0) {
-        particlePositions[i * 3 + 1] = -100;
-      }
-    }
-  }
-  particleGeo.attributes.position.needsUpdate = true;
-  particleGeo.attributes.color.needsUpdate = true;
-}
 
 // ── APPOINTMENT SYSTEM ──
 const appointmentSlots = [];
-let nextSlotTime = 0;
-let trucksInCurrentSlot = 0;
+let nextSlotTime = 0, trucksInCurrentSlot = 0;
 
 function assignAppointment(truck) {
-  if (nextSlotTime < simTime) {
-    nextSlotTime = Math.ceil(simTime / SLOT_DURATION) * SLOT_DURATION;
-    trucksInCurrentSlot = 0;
-  }
-  if (trucksInCurrentSlot >= MAX_PER_SLOT) {
-    nextSlotTime += SLOT_DURATION;
-    trucksInCurrentSlot = 0;
-  }
+  if (nextSlotTime < simTime) { nextSlotTime = Math.ceil(simTime / SLOT_DURATION) * SLOT_DURATION; trucksInCurrentSlot = 0; }
+  if (trucksInCurrentSlot >= MAX_PER_SLOT) { nextSlotTime += SLOT_DURATION; trucksInCurrentSlot = 0; }
   truck.userData.appointmentTime = nextSlotTime;
   truck.userData.arrivalTime = simTime;
   trucksInCurrentSlot++;
-
   const diff = simTime - truck.userData.appointmentTime;
-  if (diff < -SLOT_TOLERANCE) {
-    truck.userData.punctuality = 'early';
-    truck.userData.priority = 5;
-    kpi.early++;
-  } else if (diff <= SLOT_TOLERANCE) {
-    truck.userData.punctuality = 'on-time';
-    truck.userData.priority = 10;
-    kpi.onTime++;
-  } else {
-    truck.userData.punctuality = 'late';
-    truck.userData.priority = Math.max(1, 10 - (diff / SLOT_DURATION) * 5);
-    kpi.late++;
-  }
-
-  // Track slot
+  if (diff < -SLOT_TOLERANCE) { truck.userData.punctuality = 'early'; truck.userData.priority = 5; kpi.early++; }
+  else if (diff <= SLOT_TOLERANCE) { truck.userData.punctuality = 'on-time'; truck.userData.priority = 10; kpi.onTime++; }
+  else { truck.userData.punctuality = 'late'; truck.userData.priority = Math.max(1, 10 - (diff / SLOT_DURATION) * 5); kpi.late++; }
   let slot = appointmentSlots.find(s => s.time === truck.userData.appointmentTime);
-  if (!slot) {
-    slot = { time: truck.userData.appointmentTime, trucks: 0 };
-    appointmentSlots.push(slot);
-    if (appointmentSlots.length > 8) appointmentSlots.shift();
-  }
+  if (!slot) { slot = { time: truck.userData.appointmentTime, trucks: 0 }; appointmentSlots.push(slot); if (appointmentSlots.length > 8) appointmentSlots.shift(); }
   slot.trucks++;
 }
 
-// ── SIMULATION TIMERS ──
-let nextTruckTime = 5;
-let nextTrainTime = 200;
-let nextShipTime = 100;
-let truckIdCounter = 0;
-
-// ── Parking management ──
+// ── PARKING ──
+let nextTruckTime = 5, nextTrainTime = 200, nextShipTime = 100;
 const parkingSlots = [];
-for (let lot = 0; lot < 4; lot++) {
-  for (let s = 0; s < 4; s++) {
-    parkingSlots.push({
-      pos: new THREE.Vector3(-44 + (s - 1.5) * 2, 0.5, -22.5 + lot * 15),
-      occupied: false
-    });
-  }
-}
+for (let lot = 0; lot < 4; lot++) for (let s = 0; s < 4; s++)
+  parkingSlots.push({ pos: new THREE.Vector3(-44 + (s - 1.5) * 2, 0.5, -22.5 + lot * 15), occupied: false });
 
 function findParkingSlot() {
   const free = parkingSlots.filter(s => !s.occupied);
-  if (free.length === 0) return null;
+  if (!free.length) return null;
   const slot = free[Math.floor(Math.random() * free.length)];
   slot.occupied = true;
   return slot;
 }
 
-// ── SIMULATION UPDATE ──
+// ── SIMULATION ──
 function updateSim(dt) {
   if (paused) return;
-  const simDt = dt * speedMult * 30; // 30x real-time base
+  const simDt = dt * speedMult * 30;
   simTime += simDt;
+  const realDt = dt * speedMult;
+
+  // Clouds drift
+  scene.children.forEach(c => {
+    if (c.userData.speed) {
+      c.position.x += c.userData.speed * dt;
+      if (c.position.x > 120) c.position.x = -120;
+    }
+  });
 
   // Spawn trucks
   if (simTime >= nextTruckTime) {
@@ -622,10 +744,8 @@ function updateSim(dt) {
       const gt = Math.floor(Math.random() * 4);
       const truck = createTruck(gt);
       truck.position.set(-55, 0.5, -60);
-      truck.rotation.y = 0;
       truck.userData.parkingSlot = slot;
       truck.userData.targetPos.copy(slot.pos);
-      truck.userData.state = 'arriving';
       assignAppointment(truck);
       scene.add(truck);
       activeTrucks.push(truck);
@@ -639,8 +759,6 @@ function updateSim(dt) {
     const gt = Math.floor(Math.random() * 4);
     const train = createTrain(gt);
     train.position.set(-39, 0.5, -70);
-    train.userData.state = 'arriving';
-    train.userData.targetZ = 0;
     scene.add(train);
     activeTrain = train;
     kpi.trains++;
@@ -649,246 +767,187 @@ function updateSim(dt) {
   // Spawn ships
   if (simTime >= nextShipTime) {
     const freeIdx = [0, 1].find(i => !ships.some(s => s.userData.pierIdx === i && !s.userData.loaded));
-    if (freeIdx !== undefined) {
-      nextShipTime = simTime + SHIP_INTERVAL;
-      spawnShip(freeIdx);
-    }
+    if (freeIdx !== undefined) { nextShipTime = simTime + SHIP_INTERVAL; spawnShip(freeIdx); }
   }
 
   // Update trucks
   for (let i = activeTrucks.length - 1; i >= 0; i--) {
     const t = activeTrucks[i];
     const ud = t.userData;
-    const moveSpeed = ud.speed * dt * speedMult;
+    const moveSpeed = ud.speed * realDt;
+    let isMoving = false;
+    let moveDir = null;
 
     if (ud.state === 'arriving') {
-      // Move toward parking
-      const target = ud.targetPos;
-      const dir = new THREE.Vector3().subVectors(target, t.position);
+      const dir = new THREE.Vector3().subVectors(ud.targetPos, t.position);
       if (dir.length() > 0.5) {
+        isMoving = true;
+        moveDir = dir.clone().normalize();
         dir.normalize().multiplyScalar(Math.min(moveSpeed, dir.length()));
         t.position.add(dir);
-        t.rotation.y = Math.atan2(dir.x, dir.z);
-      } else {
-        t.position.copy(target);
-        ud.state = 'queuing';
-        ud.waitTime = 0;
-      }
+        t.rotation.y = Math.atan2(moveDir.x, moveDir.z);
+      } else { t.position.copy(ud.targetPos); ud.state = 'queuing'; ud.waitTime = 0; }
     } else if (ud.state === 'queuing') {
       ud.waitTime += simDt;
-      // Find an auto silo to unload to
       if (ud.waitTime > 5) {
-        const siloIdx = autoSilos.findIndex(s =>
-          (s.grainType === -1 || s.grainType === ud.grainType) &&
-          s.amount < s.capacity * 0.95 && !s.isUnloading
-        );
-        if (siloIdx >= 0) {
-          ud.autoSiloIdx = siloIdx;
-          ud.state = 'unloading';
-          ud.waitTime = 0;
-          autoSilos[siloIdx].grainType = ud.grainType;
-        } else if (ud.waitTime > NO_SHOW_TIMEOUT) {
-          ud.state = 'leaving';
-          kpi.noShow++;
-          if (ud.parkingSlot) ud.parkingSlot.occupied = false;
-        }
+        const siloIdx = autoSilos.findIndex(s => (s.grainType === -1 || s.grainType === ud.grainType) && s.amount < s.capacity * 0.95 && !s.isUnloading);
+        if (siloIdx >= 0) { ud.autoSiloIdx = siloIdx; ud.state = 'unloading'; ud.waitTime = 0; autoSilos[siloIdx].grainType = ud.grainType; }
+        else if (ud.waitTime > NO_SHOW_TIMEOUT) { ud.state = 'leaving'; kpi.noShow++; if (ud.parkingSlot) ud.parkingSlot.occupied = false; }
       }
     } else if (ud.state === 'unloading') {
-      const rate = 8 * dt * speedMult;
-      const transferAmt = Math.min(rate, ud.load);
-      ud.load -= transferAmt;
+      const rate = 8 * realDt;
+      const amt = Math.min(rate, ud.load);
+      ud.load -= amt;
       const silo = autoSilos[ud.autoSiloIdx];
-      silo.amount += transferAmt;
-      // Particles
-      if (Math.random() < 0.3) {
-        const sp = new THREE.Vector3(t.position.x, 3, t.position.z);
-        const sv = new THREE.Vector3(
-          (silo.mesh.position.x - t.position.x) * 0.5,
-          2,
-          (silo.mesh.position.z - t.position.z) * 0.5
-        );
+      silo.amount += amt;
+      // Shrink cargo visually
+      const loadPct = ud.load / ud.capacity;
+      ud.cargo.scale.y = Math.max(0.05, loadPct);
+      ud.cargo.position.y = 0.85 + loadPct * 0.6;
+      if (Math.random() < 0.5) {
+        const sp = new THREE.Vector3(t.position.x, 3.5, t.position.z);
+        const sv = new THREE.Vector3((silo.mesh.position.x - t.position.x) * 0.4 + (Math.random() - 0.5), 2.5 + Math.random(), (silo.mesh.position.z - t.position.z) * 0.4 + (Math.random() - 0.5));
         emitParticle(sp, sv, GRAIN_COLORS[ud.grainType]);
       }
-      if (ud.load <= 0) {
-        ud.state = 'leaving';
-        if (ud.parkingSlot) ud.parkingSlot.occupied = false;
-        // Trigger auto silo transfer if above threshold
-        if (silo.amount >= silo.capacity * AUTO_SILO_THR) {
-          silo.isUnloading = true;
-        }
-      }
+      if (ud.load <= 0) { ud.state = 'leaving'; if (ud.parkingSlot) ud.parkingSlot.occupied = false; if (silo.amount >= silo.capacity * AUTO_SILO_THR) silo.isUnloading = true; }
     } else if (ud.state === 'leaving') {
-      const exitPos = new THREE.Vector3(-55, 0.5, 65);
-      const dir = new THREE.Vector3().subVectors(exitPos, t.position);
+      const exitTarget = new THREE.Vector3(-55, 0.5, 65);
+      const dir = new THREE.Vector3().subVectors(exitTarget, t.position);
       if (dir.length() > 1) {
+        isMoving = true;
+        moveDir = dir.clone().normalize();
         dir.normalize().multiplyScalar(Math.min(moveSpeed * 1.5, dir.length()));
         t.position.add(dir);
-        t.rotation.y = Math.atan2(dir.x, dir.z);
-      } else {
-        scene.remove(t);
-        activeTrucks.splice(i, 1);
+        t.rotation.y = Math.atan2(moveDir.x, moveDir.z);
+      } else { scene.remove(t); activeTrucks.splice(i, 1); continue; }
+    }
+
+    // ── Wheel spin + body bounce ──
+    if (isMoving) {
+      ud.wheelSpeed += realDt * 12;
+      ud.bouncePhase += realDt * 18;
+      // Spin all wheels
+      for (const w of ud.wheels) {
+        w.children[0].rotation.z += realDt * 12; // tire torus
       }
+      // Body bounce (suspension simulation)
+      const bounce = Math.sin(ud.bouncePhase) * 0.03;
+      const tilt = Math.sin(ud.bouncePhase * 0.7) * 0.008;
+      t.position.y = 0.5 + bounce;
+      t.rotation.x = tilt;
+    } else {
+      // Settle
+      t.position.y += (0.5 - t.position.y) * 0.1;
+      t.rotation.x *= 0.9;
     }
   }
 
-  // Update auto silos → main silos transfer
+  // Auto silos → main silos
   for (const as of autoSilos) {
     if (as.isUnloading && as.amount > 0) {
-      const rate = 12 * dt * speedMult;
+      const rate = 12 * realDt;
       const amt = Math.min(rate, as.amount);
-      // Find a main silo with matching type or empty
-      const ms = mainSilos.find(s =>
-        (s.grainType === as.grainType || s.grainType === -1) && s.amount < s.capacity
-      );
+      const ms = mainSilos.find(s => (s.grainType === as.grainType || s.grainType === -1) && s.amount < s.capacity);
       if (ms) {
-        as.amount -= amt;
-        ms.amount += amt;
-        ms.grainType = as.grainType;
-        // Particles on conveyor
-        if (Math.random() < 0.2) {
-          const sp = new THREE.Vector3(as.mesh.position.x + 3, 3, as.mesh.position.z);
-          emitParticle(sp, new THREE.Vector3(3, 1, (Math.random() - 0.5) * 0.5), GRAIN_COLORS[as.grainType]);
+        as.amount -= amt; ms.amount += amt; ms.grainType = as.grainType;
+        if (Math.random() < 0.4) {
+          const sp = new THREE.Vector3(as.mesh.position.x + 3, 3.5, as.mesh.position.z);
+          emitParticle(sp, new THREE.Vector3(3 + Math.random(), 1.5 + Math.random(), (Math.random() - 0.5) * 1.5), GRAIN_COLORS[as.grainType]);
         }
       }
-      if (as.amount <= 0) {
-        as.isUnloading = false;
-        as.grainType = -1;
-        as.amount = 0;
-      }
+      if (as.amount <= 0) { as.isUnloading = false; as.grainType = -1; as.amount = 0; }
     }
-    // Update auto silo fill visual
     const fillH = (as.amount / as.capacity) * 7;
     as.fill.scale.y = Math.max(0.001, fillH);
     as.fill.position.y = 0.2 + fillH / 2;
-    if (as.grainType >= 0) {
-      as.fillMat.color.setHex(GRAIN_COLORS[as.grainType]);
-      as.fillMat.emissive.setHex(GRAIN_COLORS[as.grainType]);
-    }
+    if (as.grainType >= 0) { as.fillMat.color.setHex(GRAIN_COLORS[as.grainType]); as.fillMat.emissive.setHex(GRAIN_COLORS[as.grainType]); }
   }
 
-  // Update train
+  // Train
   if (activeTrain) {
-    const tr = activeTrain;
-    const tud = tr.userData;
+    const tr = activeTrain, tud = tr.userData;
     if (tud.state === 'arriving') {
-      const target = tud.targetZ;
-      if (tr.position.z < target - 0.5) {
-        tr.position.z += 8 * dt * speedMult;
-      } else {
-        tud.state = 'unloading';
-        tud.waitTime = 0;
-      }
+      if (tr.position.z < tud.targetZ - 0.5) tr.position.z += 8 * realDt;
+      else tud.state = 'unloading';
     } else if (tud.state === 'unloading') {
-      const rate = 15 * dt * speedMult;
+      const rate = 15 * realDt;
       const amt = Math.min(rate, tud.load);
       tud.load -= amt;
-      // Direct to main silos
-      const ms = mainSilos.find(s =>
-        (s.grainType === tud.grainType || s.grainType === -1) && s.amount < s.capacity
-      );
+      const ms = mainSilos.find(s => (s.grainType === tud.grainType || s.grainType === -1) && s.amount < s.capacity);
       if (ms) {
-        ms.amount += amt;
-        ms.grainType = tud.grainType;
-        if (Math.random() < 0.15) {
-          const sp = new THREE.Vector3(tr.position.x + 5, 2, tr.position.z);
-          emitParticle(sp, new THREE.Vector3(4, 2, (Math.random() - 0.5) * 2), GRAIN_COLORS[tud.grainType]);
+        ms.amount += amt; ms.grainType = tud.grainType;
+        if (Math.random() < 0.3) {
+          const sp = new THREE.Vector3(tr.position.x + 5, 2.5, tr.position.z + (Math.random() - 0.5) * 8);
+          emitParticle(sp, new THREE.Vector3(5 + Math.random() * 2, 2 + Math.random(), (Math.random() - 0.5) * 3), GRAIN_COLORS[tud.grainType]);
         }
       }
-      if (tud.load <= 0) {
-        tud.state = 'leaving';
-      }
+      if (tud.load <= 0) tud.state = 'leaving';
     } else if (tud.state === 'leaving') {
-      tr.position.z += 8 * dt * speedMult;
-      if (tr.position.z > 70) {
-        scene.remove(tr);
-        activeTrain = null;
-      }
+      tr.position.z += 8 * realDt;
+      if (tr.position.z > 70) { scene.remove(tr); activeTrain = null; }
     }
   }
 
-  // Update main silo visuals
+  // Main silo visuals
   let totalFill = 0, totalCap = 0;
   for (const ms of mainSilos) {
     const fillH = (ms.amount / ms.capacity) * 11;
     ms.fill.scale.y = Math.max(0.001, fillH);
     ms.fill.position.y = 0.2 + fillH / 2;
-    if (ms.grainType >= 0) {
-      ms.fillMat.color.setHex(GRAIN_COLORS[ms.grainType]);
-      ms.fillMat.emissive.setHex(GRAIN_COLORS[ms.grainType]);
-    }
-    totalFill += ms.amount;
-    totalCap += ms.capacity;
+    if (ms.grainType >= 0) { ms.fillMat.color.setHex(GRAIN_COLORS[ms.grainType]); ms.fillMat.emissive.setHex(GRAIN_COLORS[ms.grainType]); }
+    totalFill += ms.amount; totalCap += ms.capacity;
   }
 
-  // Update ships
+  // Ships
   for (let i = ships.length - 1; i >= 0; i--) {
-    const ship = ships[i];
-    const sud = ship.userData;
+    const ship = ships[i], sud = ship.userData;
+    const bob = Math.sin(simTime * 0.5 + i * 2.3) * 0.2;
+    const roll = Math.sin(simTime * 0.3 + i * 1.7) * 0.012;
 
     if (sud.arriving) {
-      if (ship.position.x > sud.targetX + 0.3) {
-        ship.position.x -= 4 * dt * speedMult;
-      } else {
-        ship.position.x = sud.targetX;
-        sud.arriving = false;
-        sud.loading = true;
-      }
-      // Gentle bob
-      ship.position.y = -0.5 + Math.sin(simTime * 0.5 + i) * 0.15;
+      if (ship.position.x > sud.targetX + 0.3) ship.position.x -= 4 * realDt;
+      else { ship.position.x = sud.targetX; sud.arriving = false; sud.loading = true; }
+      ship.position.y = -0.5 + bob; ship.rotation.z = roll;
     } else if (sud.loading) {
-      ship.position.y = -0.5 + Math.sin(simTime * 0.5 + i) * 0.15;
-
+      ship.position.y = -0.5 + bob; ship.rotation.z = roll;
       let allFull = true;
       for (const bilge of sud.bilges) {
         if (bilge.amount < bilge.capacity) {
           allFull = false;
-          // Pull from matching main silo
           const ms = mainSilos.find(s => s.grainType === bilge.grainType && s.amount > 0);
           if (ms) {
-            const rate = 10 * dt * speedMult;
+            const rate = 10 * realDt;
             const amt = Math.min(rate, ms.amount, bilge.capacity - bilge.amount);
-            ms.amount -= amt;
-            bilge.amount += amt;
+            ms.amount -= amt; bilge.amount += amt;
             if (ms.amount <= 0) { ms.grainType = -1; ms.amount = 0; }
-            // Particles
-            if (Math.random() < 0.15) {
-              const sp = new THREE.Vector3(32, 4, ship.position.z);
-              emitParticle(sp, new THREE.Vector3(3, 1, (Math.random() - 0.5)), GRAIN_COLORS[bilge.grainType]);
+            if (Math.random() < 0.3) {
+              const sp = new THREE.Vector3(34, 5, ship.position.z + (Math.random() - 0.5) * 3);
+              emitParticle(sp, new THREE.Vector3(3 + Math.random(), 0.5 + Math.random(), (Math.random() - 0.5) * 2), GRAIN_COLORS[bilge.grainType]);
             }
           }
         }
-        // Update bilge fill visual
         const fillH = (bilge.amount / bilge.capacity) * 2.2;
         bilge.fill.scale.y = Math.max(0.001, fillH);
         bilge.fill.position.y = 2.2 + fillH / 2;
       }
-
-      if (allFull) {
-        sud.loading = false;
-        sud.loaded = true;
-        sud.departTime = simTime;
-        kpi.ships++;
-      }
+      if (allFull) { sud.loading = false; sud.loaded = true; sud.departTime = simTime; kpi.ships++; }
     } else if (sud.loaded) {
-      ship.position.y = -0.5 + Math.sin(simTime * 0.5 + i) * 0.15;
+      ship.position.y = -0.5 + bob; ship.rotation.z = roll;
       if (simTime - sud.departTime > 30) {
-        ship.position.x += 5 * dt * speedMult;
-        if (ship.position.x > 100) {
-          scene.remove(ship);
-          ships.splice(i, 1);
-        }
+        ship.position.x += 5 * realDt;
+        if (ship.position.x > 105) { scene.remove(ship); ships.splice(i, 1); }
       }
     }
   }
 
   updateParticles(dt);
+  waterMat.uniforms.uTime.value = simTime * 0.3;
   updateHUD(totalFill, totalCap);
 }
 
-// ── HUD UPDATE ──
+// ── HUD ──
 function updateHUD(totalFill, totalCap) {
-  const mins = Math.floor(simTime / 60);
-  const secs = Math.floor(simTime % 60);
+  const mins = Math.floor(simTime / 60), secs = Math.floor(simTime % 60);
   document.getElementById('kpi-time').textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
   document.getElementById('kpi-trucks').textContent = kpi.trucks;
   document.getElementById('kpi-trains').textContent = kpi.trains;
@@ -899,54 +958,33 @@ function updateHUD(totalFill, totalCap) {
   document.getElementById('kpi-noshow').textContent = kpi.noShow;
   document.getElementById('kpi-fill').textContent = totalCap > 0 ? Math.round((totalFill / totalCap) * 100) + '%' : '0%';
 
-  // Appointment slots
   const slotList = document.getElementById('slot-list');
   slotList.innerHTML = appointmentSlots.slice(-6).map(s => {
-    const m = Math.floor(s.time / 60);
-    const sec = Math.floor(s.time % 60);
+    const m = Math.floor(s.time / 60), sec = Math.floor(s.time % 60);
     const full = s.trucks >= MAX_PER_SLOT;
-    return `<div class="slot-row">
-      <span class="slot-time">${m}:${sec.toString().padStart(2, '0')}</span>
-      <span class="slot-count" style="color:${full ? '#f44336' : '#4caf50'}">${s.trucks}/${MAX_PER_SLOT}</span>
-    </div>`;
+    return `<div class="slot-row"><span class="slot-time">${m}:${sec.toString().padStart(2, '0')}</span><span class="slot-count" style="color:${full ? '#c62828' : '#2e7d32'}">${s.trucks}/${MAX_PER_SLOT}</span></div>`;
   }).join('');
 }
 
 // ── CONTROLS ──
-window.toggleSpeed = () => {
-  const speeds = [1, 2, 5, 10];
-  const idx = speeds.indexOf(speedMult);
-  speedMult = speeds[(idx + 1) % speeds.length];
-  document.getElementById('btn-speed').textContent = `${speedMult}x SPEED`;
-};
-window.togglePause = () => {
-  paused = !paused;
-  const btn = document.getElementById('btn-pause');
-  btn.textContent = paused ? 'RESUME' : 'PAUSE';
-  btn.classList.toggle('active', paused);
-};
-window.cycleView = () => {
-  autoRotate = !autoRotate;
-  controls.autoRotate = autoRotate;
-  controls.autoRotateSpeed = 1.5;
-  document.getElementById('btn-view').classList.toggle('active', autoRotate);
-};
+window.toggleSpeed = () => { const s = [1, 2, 5, 10]; speedMult = s[(s.indexOf(speedMult) + 1) % s.length]; document.getElementById('btn-speed').textContent = `${speedMult}x`; };
+window.togglePause = () => { paused = !paused; const b = document.getElementById('btn-pause'); b.textContent = paused ? 'Resume' : 'Pause'; b.classList.toggle('active', paused); };
+window.cycleView = () => { autoRotate = !autoRotate; controls.autoRotate = autoRotate; controls.autoRotateSpeed = 1.2; document.getElementById('btn-view').classList.toggle('active', autoRotate); };
 
-// ── RESIZE ──
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
+  composer.setSize(window.innerWidth, window.innerHeight);
 });
 
-// ── ANIMATION LOOP ──
 const clock = new THREE.Clock();
 function animate() {
   requestAnimationFrame(animate);
   const dt = Math.min(clock.getDelta(), 0.05);
   controls.update();
   updateSim(dt);
-  renderer.render(scene, camera);
+  composer.render();
 }
 animate();
 </script>
