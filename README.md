@@ -1,6 +1,6 @@
 # What is this?
 This is a corny demo claude made of anylogic and claude. 
-I've been trying to learn about logistics simulations lately, created a copy of one of the AnyLogic examples(grain loading) that looked cool, and claude apparently was able to do ALOT of it. 
+I've been trying to learn about logistics simulations lately, created a copy of one of the AnyLogic examples(grain loading) that looked cool, and claude apparently was able to do ALOT with it. 
 I genuienly believe this is worthwhile to look at - AnyLogic is really impressive albeit "older", but with Claude it can do so many cool things. 
 (Rest of README is Claude made but human validated if it helps!)
 
