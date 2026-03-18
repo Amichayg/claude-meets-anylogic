@@ -8,7 +8,7 @@ I gave Claude (via [Claude Code](https://docs.anthropic.com/en/docs/claude-code)
 
 It did all three. This repo is the result.
 
-![Terminal](docs/terminal-screenshot.jpg)
+![Demo](docs/demo.gif)
 
 ## What Happened
 
