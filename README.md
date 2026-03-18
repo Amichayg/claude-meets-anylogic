@@ -1,6 +1,12 @@
+# What is this?
+This is a corny demo claude made of anylogic and claude. 
+I've been trying to learn about logistics simulations lately, created a copy of one of the AnyLogic examples(grain loading) that looked cool, and claude apparently was able to do ALOT of it. 
+I genuienly believe this is worthwhile to look at - AnyLogic is really impressive albeit "older", but with Claude it can do so many cool things. 
+(Rest of README is Claude made but human validated if it helps!)
+
 # Claude Meets AnyLogic
 
-I gave Claude (via [Claude Code](https://docs.anthropic.com/en/docs/claude-code)) an AnyLogic simulation model and asked it to:
+Claude gave Claude (via [Claude Code](https://docs.anthropic.com/en/docs/claude-code)) an AnyLogic simulation model and asked it to:
 
 1. **Understand it** — explain every flow, agent, and parameter
 2. **Extend it** — add truck appointment scheduling with priority queuing
@@ -12,7 +18,7 @@ It did all three. This repo is the result.
 
 ## What Happened
 
-I started with a grain terminal model from AnyLogic's example library — trucks, trains, and ships moving grain through silos. A 34,000-line XML file I hadn't touched.
+Claude started with a grain terminal model from AnyLogic's example library — trucks, trains, and ships moving grain through silos. A 34,000-line XML file Claude hadn't touched.
 
 **The conversation went like this:**
 
