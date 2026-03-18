@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Grain Terminal Simulation</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0a0e17; color: #e0e0e0; font-family: 'SF Mono', 'Fira Code', monospace; overflow: hidden; }
+  #canvas { position: fixed; top: 0; left: 0; z-index: 0; }
+
+  /* ── HUD overlay ── */
+  #hud { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; }
+  #hud > * { pointer-events: auto; }
+
+  .panel {
+    background: rgba(10, 14, 23, 0.88);
+    border: 1px solid rgba(100, 140, 200, 0.25);
+    border-radius: 8px;
+    backdrop-filter: blur(12px);
+    padding: 14px 18px;
+  }
+
+  #title-bar {
+    position: absolute; top: 16px; left: 50%; transform: translateX(-50%);
+    text-align: center; padding: 10px 32px;
+  }
+  #title-bar h1 { font-size: 16px; font-weight: 600; letter-spacing: 1.5px; color: #8ab4f8; }
+  #title-bar p  { font-size: 11px; color: #667; margin-top: 4px; }
+
+  #kpi-bar {
+    position: absolute; top: 16px; right: 16px;
+    display: flex; flex-direction: column; gap: 6px; min-width: 190px;
+  }
+  .kpi { display: flex; justify-content: space-between; font-size: 12px; padding: 6px 0; border-bottom: 1px solid rgba(100,140,200,0.1); }
+  .kpi-label { color: #778; }
+  .kpi-value { color: #8ab4f8; font-weight: 600; }
+
+  #legend {
+    position: absolute; bottom: 16px; left: 16px;
+    display: flex; gap: 16px; align-items: center; padding: 10px 18px;
+  }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 11px; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+
+  #appointment-panel {
+    position: absolute; top: 16px; left: 16px;
+    max-width: 220px; font-size: 11px;
+  }
+  #appointment-panel h3 { font-size: 12px; color: #8ab4f8; margin-bottom: 8px; letter-spacing: 1px; }
+  .slot-row { display: flex; justify-content: space-between; padding: 3px 0; border-bottom: 1px solid rgba(100,140,200,0.07); }
+  .slot-time { color: #556; }
+  .slot-count { color: #8ab4f8; }
+
+  #controls {
+    position: absolute; bottom: 16px; right: 16px;
+    display: flex; gap: 8px;
+  }
+  #controls button {
+    background: rgba(138, 180, 248, 0.12); border: 1px solid rgba(138, 180, 248, 0.3);
+    color: #8ab4f8; padding: 8px 16px; border-radius: 6px; cursor: pointer;
+    font-family: inherit; font-size: 11px; letter-spacing: 0.5px; transition: all 0.2s;
+  }
+  #controls button:hover { background: rgba(138, 180, 248, 0.25); }
+  #controls button.active { background: rgba(138, 180, 248, 0.35); border-color: #8ab4f8; }
+
+  #flow-info {
+    position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%);
+    text-align: center; font-size: 11px; padding: 8px 24px;
+  }
+  #flow-info span { color: #8ab4f8; }
+</style>
+</head>
+<body>
+
+<canvas id="canvas"></canvas>
+
+<div id="hud">
+  <div id="title-bar" class="panel">
+    <h1>GRAIN TERMINAL SIMULATION</h1>
+    <p>Truck Appointment Scheduling &middot; 4 Grain Types &middot; Real-time Flow</p>
+  </div>
+
+  <div id="appointment-panel" class="panel">
+    <h3>APPOINTMENT SLOTS</h3>
+    <div id="slot-list"></div>
+  </div>
+
+  <div id="kpi-bar" class="panel">
+    <div class="kpi"><span class="kpi-label">Sim Time</span><span class="kpi-value" id="kpi-time">0:00</span></div>
+    <div class="kpi"><span class="kpi-label">Trucks In</span><span class="kpi-value" id="kpi-trucks">0</span></div>
+    <div class="kpi"><span class="kpi-label">Trains In</span><span class="kpi-value" id="kpi-trains">0</span></div>
+    <div class="kpi"><span class="kpi-label">Ships Loaded</span><span class="kpi-value" id="kpi-ships">0</span></div>
+    <div class="kpi" style="border-bottom:none;margin-top:4px;border-top:1px solid rgba(100,140,200,0.2);padding-top:8px;">
+      <span class="kpi-label">On-time</span><span class="kpi-value" style="color:#4caf50" id="kpi-ontime">0</span>
+    </div>
+    <div class="kpi"><span class="kpi-label">Early</span><span class="kpi-value" style="color:#ff9800" id="kpi-early">0</span></div>
+    <div class="kpi"><span class="kpi-label">Late</span><span class="kpi-value" style="color:#f44336" id="kpi-late">0</span></div>
+    <div class="kpi"><span class="kpi-label">No-show</span><span class="kpi-value" style="color:#9e9e9e" id="kpi-noshow">0</span></div>
+    <div class="kpi"><span class="kpi-label">Silo Fill</span><span class="kpi-value" id="kpi-fill">0%</span></div>
+  </div>
+
+  <div id="legend" class="panel">
+    <div class="legend-item"><div class="legend-dot" style="background:#fdd835"></div>Wheat</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#ff9800"></div>Corn</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#ef5350"></div>Barley</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#d4a06a"></div>Soybean</div>
+  </div>
+
+  <div id="controls">
+    <button id="btn-speed" onclick="toggleSpeed()">1x SPEED</button>
+    <button id="btn-pause" onclick="togglePause()">PAUSE</button>
+    <button id="btn-view" onclick="cycleView()">ROTATE VIEW</button>
+  </div>
+
+  <div id="flow-info" class="panel">
+    <span>Trucks</span> &rarr; Parking &rarr; <span>Auto Silos</span> &rarr; Conveyors &rarr; <span>Main Silos</span> &rarr; Conveyors &rarr; <span>Ships</span>
+  </div>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.164.1/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.164.1/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+// ── CONFIG ──
+const GRAIN_COLORS = [0xfdd835, 0xff9800, 0xef5350, 0xd4a06a];
+const GRAIN_NAMES  = ['Wheat', 'Corn', 'Barley', 'Soybean'];
+const SLOT_DURATION = 300;   // 5 min
+const SLOT_TOLERANCE = 60;
+const MAX_PER_SLOT = 4;
+const NO_SHOW_TIMEOUT = 600;
+const TRUCK_INTERVAL = 30;   // every 30s sim-time
+const TRAIN_INTERVAL = 800;
+const SHIP_INTERVAL = 1300;
+const SILO_CAPACITY = 5000;
+const AUTO_SILO_THR = 0.9;
+const TRUCK_CAPACITY = 125;
+const TRAIN_CAPACITY = 1000;
+const BILGE_CAPACITY = 2000;
+
+let simTime = 0, paused = false, speedMult = 1;
+let autoRotate = false;
+
+// ── KPI STATE ──
+const kpi = { trucks: 0, trains: 0, ships: 0, onTime: 0, early: 0, late: 0, noShow: 0 };
+
+// ── THREE SETUP ──
+const canvas = document.getElementById('canvas');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 0.9;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0a0e17);
+scene.fog = new THREE.FogExp2(0x0a0e17, 0.0025);
+
+const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.5, 500);
+camera.position.set(-60, 55, 80);
+
+const controls = new OrbitControls(camera, canvas);
+controls.target.set(0, 5, 0);
+controls.enableDamping = true;
+controls.dampingFactor = 0.05;
+controls.maxPolarAngle = Math.PI / 2.15;
+controls.minDistance = 20;
+controls.maxDistance = 180;
+controls.update();
+
+// ── LIGHTS ──
+const ambientLight = new THREE.AmbientLight(0x334466, 0.6);
+scene.add(ambientLight);
+
+const dirLight = new THREE.DirectionalLight(0xffeedd, 1.2);
+dirLight.position.set(40, 60, 30);
+dirLight.castShadow = true;
+dirLight.shadow.camera.left = -80;
+dirLight.shadow.camera.right = 80;
+dirLight.shadow.camera.top = 80;
+dirLight.shadow.camera.bottom = -80;
+dirLight.shadow.mapSize.set(2048, 2048);
+scene.add(dirLight);
+
+const rimLight = new THREE.DirectionalLight(0x4466aa, 0.4);
+rimLight.position.set(-30, 20, -40);
+scene.add(rimLight);
+
+// ── MATERIALS ──
+const matGround    = new THREE.MeshStandardMaterial({ color: 0x1a1f2e, roughness: 0.95 });
+const matConcrete  = new THREE.MeshStandardMaterial({ color: 0x2a2f3e, roughness: 0.85 });
+const matSiloShell = new THREE.MeshStandardMaterial({ color: 0x404858, roughness: 0.6, metalness: 0.3 });
+const matAutoSilo  = new THREE.MeshStandardMaterial({ color: 0x354050, roughness: 0.7, metalness: 0.2 });
+const matConveyor  = new THREE.MeshStandardMaterial({ color: 0x556070, roughness: 0.5, metalness: 0.4 });
+const matWater     = new THREE.MeshStandardMaterial({ color: 0x0d2847, roughness: 0.3, metalness: 0.1 });
+const matPier      = new THREE.MeshStandardMaterial({ color: 0x3a3228, roughness: 0.9 });
+const matShipHull  = new THREE.MeshStandardMaterial({ color: 0x2c3e50, roughness: 0.6, metalness: 0.4 });
+const matShipDeck  = new THREE.MeshStandardMaterial({ color: 0x5d4e37, roughness: 0.8 });
+const matRail      = new THREE.MeshStandardMaterial({ color: 0x555555, roughness: 0.4, metalness: 0.7 });
+const matTruckBody = new THREE.MeshStandardMaterial({ color: 0x607080, roughness: 0.6, metalness: 0.3 });
+const matRoad      = new THREE.MeshStandardMaterial({ color: 0x1e222e, roughness: 0.95 });
+const matGlow      = (hex) => new THREE.MeshStandardMaterial({ color: hex, emissive: hex, emissiveIntensity: 0.3, roughness: 0.5 });
+
+// ── HELPERS ──
+function box(w, h, d, mat) {
+  const g = new THREE.BoxGeometry(w, h, d);
+  const m = new THREE.Mesh(g, mat);
+  m.castShadow = true; m.receiveShadow = true;
+  return m;
+}
+function cylinder(rT, rB, h, mat, seg = 24) {
+  const g = new THREE.CylinderGeometry(rT, rB, h, seg);
+  const m = new THREE.Mesh(g, mat);
+  m.castShadow = true; m.receiveShadow = true;
+  return m;
+}
+
+// ── BUILD GROUND ──
+const ground = box(200, 0.3, 160, matGround);
+ground.position.y = -0.15;
+ground.receiveShadow = true;
+scene.add(ground);
+
+// Water area (right side)
+const water = box(60, 0.25, 160, matWater);
+water.position.set(55, -0.05, 0);
+scene.add(water);
+
+// ── ROAD ──
+const road = box(6, 0.15, 120, matRoad);
+road.position.set(-55, 0.08, 0);
+scene.add(road);
+// Road line
+const lineGeo = new THREE.BoxGeometry(0.15, 0.16, 120);
+const lineMat = new THREE.MeshStandardMaterial({ color: 0x3a3f50, emissive: 0x3a3f50, emissiveIntensity: 0.2 });
+const roadLine = new THREE.Mesh(lineGeo, lineMat);
+roadLine.position.set(-55, 0.12, 0);
+scene.add(roadLine);
+
+// ── PARKING LOTS ──
+const parkingGroup = new THREE.Group();
+for (let i = 0; i < 4; i++) {
+  const lot = box(8, 0.12, 12, matConcrete);
+  lot.position.set(-44, 0.06, -22.5 + i * 15);
+  parkingGroup.add(lot);
+  // parking lines
+  for (let j = 0; j < 4; j++) {
+    const pLine = box(0.08, 0.13, 5, lineMat);
+    pLine.position.set(-44 + (j - 1.5) * 2, 0.14, -22.5 + i * 15);
+    parkingGroup.add(pLine);
+  }
+}
+scene.add(parkingGroup);
+
+// ── AUTO SILOS (4 intermediate) ──
+const autoSilos = [];
+const autoSiloGroup = new THREE.Group();
+for (let i = 0; i < 4; i++) {
+  const silo = cylinder(2.2, 2.2, 8, matAutoSilo);
+  silo.position.set(-30, 4, -15 + i * 10);
+  autoSiloGroup.add(silo);
+
+  // Fill indicator (inner cylinder, starts empty)
+  const fillMat = matGlow(GRAIN_COLORS[0]);
+  const fill = cylinder(2.0, 2.0, 0.01, fillMat);
+  fill.position.set(-30, 0.2, -15 + i * 10);
+  autoSiloGroup.add(fill);
+
+  autoSilos.push({ mesh: silo, fill, fillMat, amount: 0, capacity: TRUCK_CAPACITY * 4, grainType: -1, isUnloading: false });
+}
+scene.add(autoSiloGroup);
+
+// ── CONVEYOR: AUTO → MAIN ──
+const convAtoM = box(14, 0.4, 1.2, matConveyor);
+convAtoM.position.set(-17, 2, 0);
+scene.add(convAtoM);
+// conveyor supports
+for (let i = -1; i <= 1; i++) {
+  const sup = box(0.3, 4, 0.3, matConveyor);
+  sup.position.set(-17 + i * 6, 1, 0);
+  scene.add(sup);
+}
+
+// ── MAIN SILOS (4 x 4 = 16) ──
+const mainSilos = [];
+const mainSiloGroup = new THREE.Group();
+for (let row = 0; row < 4; row++) {
+  for (let col = 0; col < 4; col++) {
+    const silo = cylinder(2.5, 2.5, 12, matSiloShell);
+    const x = -4 + col * 6.5;
+    const z = -15 + row * 10;
+    silo.position.set(x, 6, z);
+    mainSiloGroup.add(silo);
+
+    // Roof cone
+    const roof = cylinder(0, 2.8, 2, matSiloShell);
+    roof.position.set(x, 12.5, z);
+    mainSiloGroup.add(roof);
+
+    // Fill indicator
+    const fillMat = matGlow(GRAIN_COLORS[0]);
+    const fill = cylinder(2.3, 2.3, 0.01, fillMat);
+    fill.position.set(x, 0.2, z);
+    mainSiloGroup.add(fill);
+
+    mainSilos.push({ mesh: silo, fill, fillMat, amount: 0, capacity: SILO_CAPACITY, grainType: -1 });
+  }
+}
+scene.add(mainSiloGroup);
+
+// ── CONVEYOR: MAIN → PIER ──
+const convMtoP = box(18, 0.4, 1.2, matConveyor);
+convMtoP.position.set(25, 3, 0);
+scene.add(convMtoP);
+for (let i = -1; i <= 1; i++) {
+  const sup = box(0.3, 6, 0.3, matConveyor);
+  sup.position.set(25 + i * 8, 1.5, 0);
+  scene.add(sup);
+}
+// Second conveyor for pier 2
+const convMtoP2 = box(18, 0.4, 1.2, matConveyor);
+convMtoP2.position.set(25, 3, 20);
+scene.add(convMtoP2);
+
+// ── RAIL TRACK ──
+const railGroup = new THREE.Group();
+const rail1 = box(0.15, 0.2, 120, matRail);
+rail1.position.set(-30, 0.1, 0);
+railGroup.add(rail1);
+const rail2 = box(0.15, 0.2, 120, matRail);
+rail2.position.set(-28, 0.1, 0);
+railGroup.add(rail2);
+// ties
+for (let i = -30; i <= 30; i++) {
+  const tie = box(4, 0.08, 0.4, matRail);
+  tie.position.set(-29, 0.04, i * 2);
+  railGroup.add(tie);
+}
+// move track behind auto silos
+railGroup.position.set(-10, 0, 0);
+scene.add(railGroup);
+
+// ── PIERS ──
+const pierGroup = new THREE.Group();
+for (let i = 0; i < 2; i++) {
+  const pier = box(16, 0.6, 4, matPier);
+  pier.position.set(42, 0.3, -10 + i * 20);
+  pierGroup.add(pier);
+  // pier supports
+  for (let j = -2; j <= 2; j++) {
+    const ps = box(0.6, 2, 0.6, matPier);
+    ps.position.set(42 + j * 3.5, -0.5, -10 + i * 20);
+    pierGroup.add(ps);
+  }
+}
+scene.add(pierGroup);
+
+// ── SHIPS ──
+function createShip(z) {
+  const ship = new THREE.Group();
+  // Hull
+  const hull = box(22, 3, 6, matShipHull);
+  hull.position.y = 1.5;
+  ship.add(hull);
+  // Deck
+  const deck = box(20, 0.3, 5.5, matShipDeck);
+  deck.position.y = 3.15;
+  ship.add(deck);
+  // Bridge
+  const bridge = box(4, 4, 4, matShipHull);
+  bridge.position.set(-8, 5, 0);
+  ship.add(bridge);
+  // Bilges (5 cargo holds)
+  const bilges = [];
+  for (let i = 0; i < 5; i++) {
+    const bilgeShell = box(3, 2.5, 4.5, new THREE.MeshStandardMaterial({ color: 0x1a2530, roughness: 0.7 }));
+    bilgeShell.position.set(-4 + i * 3.2, 3.4, 0);
+    ship.add(bilgeShell);
+    const bilgeFillMat = matGlow(GRAIN_COLORS[0]);
+    const bilgeFill = box(2.6, 0.01, 4.0, bilgeFillMat);
+    bilgeFill.position.set(-4 + i * 3.2, 2.2, 0);
+    ship.add(bilgeFill);
+    bilges.push({ fill: bilgeFill, fillMat: bilgeFillMat, amount: 0, capacity: BILGE_CAPACITY, grainType: -1 });
+  }
+  ship.position.set(56, -0.5, z);
+  ship.userData = { bilges, loading: false, loaded: false, departTime: 0 };
+  return ship;
+}
+
+const ships = [];
+function spawnShip(pierIdx) {
+  const z = -10 + pierIdx * 20;
+  const ship = createShip(z);
+  ship.position.x = 90; // start off-screen
+  ship.userData.targetX = 56;
+  ship.userData.pierIdx = pierIdx;
+  ship.userData.arriving = true;
+  // Assign random grain types to bilges
+  ship.userData.bilges.forEach(b => {
+    b.grainType = Math.floor(Math.random() * 4);
+    b.fillMat.color.setHex(GRAIN_COLORS[b.grainType]);
+    b.fillMat.emissive.setHex(GRAIN_COLORS[b.grainType]);
+  });
+  scene.add(ship);
+  ships.push(ship);
+}
+
+// ── TRUCKS ──
+function createTruck(grainType) {
+  const truck = new THREE.Group();
+  const body = box(4, 1.5, 2, matTruckBody);
+  body.position.y = 1.2;
+  truck.add(body);
+  const cab = box(1.5, 1.8, 2, new THREE.MeshStandardMaterial({ color: 0x708090, roughness: 0.5, metalness: 0.3 }));
+  cab.position.set(1.6, 1.4, 0);
+  truck.add(cab);
+  const cargo = box(2.2, 1.2, 1.8, matGlow(GRAIN_COLORS[grainType]));
+  cargo.position.set(-0.3, 2.3, 0);
+  truck.add(cargo);
+  // Wheels
+  const wheelMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.8 });
+  [[-1.2, 0.4, 1.1], [-1.2, 0.4, -1.1], [1.2, 0.4, 1.1], [1.2, 0.4, -1.1]].forEach(([x,y,z]) => {
+    const w = cylinder(0.35, 0.35, 0.3, wheelMat, 12);
+    w.rotation.x = Math.PI / 2;
+    w.position.set(x, y, z);
+    truck.add(w);
+  });
+  truck.userData = {
+    grainType, capacity: TRUCK_CAPACITY, load: TRUCK_CAPACITY,
+    state: 'arriving', // arriving, parking, queuing, unloading, leaving
+    appointmentTime: 0, arrivalTime: 0, priority: 5,
+    punctuality: 'early', // on-time, early, late
+    targetPos: new THREE.Vector3(), speed: 15, waitTime: 0,
+    parkingSlot: null, autoSiloIdx: -1
+  };
+  return truck;
+}
+
+const activeTrucks = [];
+
+// ── TRAINS ──
+function createTrain(grainType) {
+  const train = new THREE.Group();
+  // Locomotive
+  const loco = box(5, 3, 2.5, new THREE.MeshStandardMaterial({ color: 0x8b0000, roughness: 0.5, metalness: 0.4 }));
+  loco.position.set(0, 1.8, 0);
+  train.add(loco);
+  const chimney = cylinder(0.3, 0.4, 1.2, matRail);
+  chimney.position.set(1.5, 3.5, 0);
+  train.add(chimney);
+  // 8 hopper cars
+  for (let i = 0; i < 8; i++) {
+    const car = box(3.5, 2, 2.2, new THREE.MeshStandardMaterial({ color: 0x4a4a4a, roughness: 0.7, metalness: 0.3 }));
+    car.position.set(-4.5 - i * 4, 1.3, 0);
+    train.add(car);
+    const grain = box(3.0, 0.8, 1.8, matGlow(GRAIN_COLORS[grainType]));
+    grain.position.set(-4.5 - i * 4, 2.5, 0);
+    train.add(grain);
+  }
+  train.userData = {
+    grainType, state: 'arriving', load: TRAIN_CAPACITY,
+    targetZ: 0, grainMeshes: []
+  };
+  return train;
+}
+
+let activeTrain = null;
+
+// ── PARTICLE SYSTEM for grain flow ──
+const particleCount = 600;
+const particleGeo = new THREE.BufferGeometry();
+const particlePositions = new Float32Array(particleCount * 3);
+const particleColors = new Float32Array(particleCount * 3);
+const particleAlphas = new Float32Array(particleCount);
+const particleVelocities = [];
+const particleLife = new Float32Array(particleCount);
+
+for (let i = 0; i < particleCount; i++) {
+  particlePositions[i * 3] = 0;
+  particlePositions[i * 3 + 1] = -100;
+  particlePositions[i * 3 + 2] = 0;
+  particleColors[i * 3] = 1;
+  particleColors[i * 3 + 1] = 1;
+  particleColors[i * 3 + 2] = 0;
+  particleAlphas[i] = 0;
+  particleLife[i] = 0;
+  particleVelocities.push(new THREE.Vector3());
+}
+
+particleGeo.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
+particleGeo.setAttribute('color', new THREE.BufferAttribute(particleColors, 3));
+
+const particleMat = new THREE.PointsMaterial({
+  size: 0.4, vertexColors: true, transparent: true, opacity: 0.8,
+  blending: THREE.AdditiveBlending, depthWrite: false
+});
+const particles = new THREE.Points(particleGeo, particleMat);
+scene.add(particles);
+
+let nextParticle = 0;
+function emitParticle(pos, vel, color) {
+  const i = nextParticle;
+  nextParticle = (nextParticle + 1) % particleCount;
+  particlePositions[i * 3] = pos.x;
+  particlePositions[i * 3 + 1] = pos.y;
+  particlePositions[i * 3 + 2] = pos.z;
+  const c = new THREE.Color(color);
+  particleColors[i * 3] = c.r;
+  particleColors[i * 3 + 1] = c.g;
+  particleColors[i * 3 + 2] = c.b;
+  particleVelocities[i].copy(vel);
+  particleLife[i] = 1.0;
+}
+
+function updateParticles(dt) {
+  for (let i = 0; i < particleCount; i++) {
+    if (particleLife[i] > 0) {
+      particleLife[i] -= dt * 0.8;
+      particlePositions[i * 3] += particleVelocities[i].x * dt;
+      particlePositions[i * 3 + 1] += particleVelocities[i].y * dt;
+      particlePositions[i * 3 + 2] += particleVelocities[i].z * dt;
+      particleVelocities[i].y -= 3 * dt; // gravity
+      if (particleLife[i] <= 0) {
+        particlePositions[i * 3 + 1] = -100;
+      }
+    }
+  }
+  particleGeo.attributes.position.needsUpdate = true;
+  particleGeo.attributes.color.needsUpdate = true;
+}
+
+// ── APPOINTMENT SYSTEM ──
+const appointmentSlots = [];
+let nextSlotTime = 0;
+let trucksInCurrentSlot = 0;
+
+function assignAppointment(truck) {
+  if (nextSlotTime < simTime) {
+    nextSlotTime = Math.ceil(simTime / SLOT_DURATION) * SLOT_DURATION;
+    trucksInCurrentSlot = 0;
+  }
+  if (trucksInCurrentSlot >= MAX_PER_SLOT) {
+    nextSlotTime += SLOT_DURATION;
+    trucksInCurrentSlot = 0;
+  }
+  truck.userData.appointmentTime = nextSlotTime;
+  truck.userData.arrivalTime = simTime;
+  trucksInCurrentSlot++;
+
+  const diff = simTime - truck.userData.appointmentTime;
+  if (diff < -SLOT_TOLERANCE) {
+    truck.userData.punctuality = 'early';
+    truck.userData.priority = 5;
+    kpi.early++;
+  } else if (diff <= SLOT_TOLERANCE) {
+    truck.userData.punctuality = 'on-time';
+    truck.userData.priority = 10;
+    kpi.onTime++;
+  } else {
+    truck.userData.punctuality = 'late';
+    truck.userData.priority = Math.max(1, 10 - (diff / SLOT_DURATION) * 5);
+    kpi.late++;
+  }
+
+  // Track slot
+  let slot = appointmentSlots.find(s => s.time === truck.userData.appointmentTime);
+  if (!slot) {
+    slot = { time: truck.userData.appointmentTime, trucks: 0 };
+    appointmentSlots.push(slot);
+    if (appointmentSlots.length > 8) appointmentSlots.shift();
+  }
+  slot.trucks++;
+}
+
+// ── SIMULATION TIMERS ──
+let nextTruckTime = 5;
+let nextTrainTime = 200;
+let nextShipTime = 100;
+let truckIdCounter = 0;
+
+// ── Parking management ──
+const parkingSlots = [];
+for (let lot = 0; lot < 4; lot++) {
+  for (let s = 0; s < 4; s++) {
+    parkingSlots.push({
+      pos: new THREE.Vector3(-44 + (s - 1.5) * 2, 0.5, -22.5 + lot * 15),
+      occupied: false
+    });
+  }
+}
+
+function findParkingSlot() {
+  const free = parkingSlots.filter(s => !s.occupied);
+  if (free.length === 0) return null;
+  const slot = free[Math.floor(Math.random() * free.length)];
+  slot.occupied = true;
+  return slot;
+}
+
+// ── SIMULATION UPDATE ──
+function updateSim(dt) {
+  if (paused) return;
+  const simDt = dt * speedMult * 30; // 30x real-time base
+  simTime += simDt;
+
+  // Spawn trucks
+  if (simTime >= nextTruckTime) {
+    nextTruckTime = simTime + TRUCK_INTERVAL;
+    const slot = findParkingSlot();
+    if (slot) {
+      const gt = Math.floor(Math.random() * 4);
+      const truck = createTruck(gt);
+      truck.position.set(-55, 0.5, -60);
+      truck.rotation.y = 0;
+      truck.userData.parkingSlot = slot;
+      truck.userData.targetPos.copy(slot.pos);
+      truck.userData.state = 'arriving';
+      assignAppointment(truck);
+      scene.add(truck);
+      activeTrucks.push(truck);
+      kpi.trucks++;
+    }
+  }
+
+  // Spawn trains
+  if (simTime >= nextTrainTime && !activeTrain) {
+    nextTrainTime = simTime + TRAIN_INTERVAL;
+    const gt = Math.floor(Math.random() * 4);
+    const train = createTrain(gt);
+    train.position.set(-39, 0.5, -70);
+    train.userData.state = 'arriving';
+    train.userData.targetZ = 0;
+    scene.add(train);
+    activeTrain = train;
+    kpi.trains++;
+  }
+
+  // Spawn ships
+  if (simTime >= nextShipTime) {
+    const freeIdx = [0, 1].find(i => !ships.some(s => s.userData.pierIdx === i && !s.userData.loaded));
+    if (freeIdx !== undefined) {
+      nextShipTime = simTime + SHIP_INTERVAL;
+      spawnShip(freeIdx);
+    }
+  }
+
+  // Update trucks
+  for (let i = activeTrucks.length - 1; i >= 0; i--) {
+    const t = activeTrucks[i];
+    const ud = t.userData;
+    const moveSpeed = ud.speed * dt * speedMult;
+
+    if (ud.state === 'arriving') {
+      // Move toward parking
+      const target = ud.targetPos;
+      const dir = new THREE.Vector3().subVectors(target, t.position);
+      if (dir.length() > 0.5) {
+        dir.normalize().multiplyScalar(Math.min(moveSpeed, dir.length()));
+        t.position.add(dir);
+        t.rotation.y = Math.atan2(dir.x, dir.z);
+      } else {
+        t.position.copy(target);
+        ud.state = 'queuing';
+        ud.waitTime = 0;
+      }
+    } else if (ud.state === 'queuing') {
+      ud.waitTime += simDt;
+      // Find an auto silo to unload to
+      if (ud.waitTime > 5) {
+        const siloIdx = autoSilos.findIndex(s =>
+          (s.grainType === -1 || s.grainType === ud.grainType) &&
+          s.amount < s.capacity * 0.95 && !s.isUnloading
+        );
+        if (siloIdx >= 0) {
+          ud.autoSiloIdx = siloIdx;
+          ud.state = 'unloading';
+          ud.waitTime = 0;
+          autoSilos[siloIdx].grainType = ud.grainType;
+        } else if (ud.waitTime > NO_SHOW_TIMEOUT) {
+          ud.state = 'leaving';
+          kpi.noShow++;
+          if (ud.parkingSlot) ud.parkingSlot.occupied = false;
+        }
+      }
+    } else if (ud.state === 'unloading') {
+      const rate = 8 * dt * speedMult;
+      const transferAmt = Math.min(rate, ud.load);
+      ud.load -= transferAmt;
+      const silo = autoSilos[ud.autoSiloIdx];
+      silo.amount += transferAmt;
+      // Particles
+      if (Math.random() < 0.3) {
+        const sp = new THREE.Vector3(t.position.x, 3, t.position.z);
+        const sv = new THREE.Vector3(
+          (silo.mesh.position.x - t.position.x) * 0.5,
+          2,
+          (silo.mesh.position.z - t.position.z) * 0.5
+        );
+        emitParticle(sp, sv, GRAIN_COLORS[ud.grainType]);
+      }
+      if (ud.load <= 0) {
+        ud.state = 'leaving';
+        if (ud.parkingSlot) ud.parkingSlot.occupied = false;
+        // Trigger auto silo transfer if above threshold
+        if (silo.amount >= silo.capacity * AUTO_SILO_THR) {
+          silo.isUnloading = true;
+        }
+      }
+    } else if (ud.state === 'leaving') {
+      const exitPos = new THREE.Vector3(-55, 0.5, 65);
+      const dir = new THREE.Vector3().subVectors(exitPos, t.position);
+      if (dir.length() > 1) {
+        dir.normalize().multiplyScalar(Math.min(moveSpeed * 1.5, dir.length()));
+        t.position.add(dir);
+        t.rotation.y = Math.atan2(dir.x, dir.z);
+      } else {
+        scene.remove(t);
+        activeTrucks.splice(i, 1);
+      }
+    }
+  }
+
+  // Update auto silos → main silos transfer
+  for (const as of autoSilos) {
+    if (as.isUnloading && as.amount > 0) {
+      const rate = 12 * dt * speedMult;
+      const amt = Math.min(rate, as.amount);
+      // Find a main silo with matching type or empty
+      const ms = mainSilos.find(s =>
+        (s.grainType === as.grainType || s.grainType === -1) && s.amount < s.capacity
+      );
+      if (ms) {
+        as.amount -= amt;
+        ms.amount += amt;
+        ms.grainType = as.grainType;
+        // Particles on conveyor
+        if (Math.random() < 0.2) {
+          const sp = new THREE.Vector3(as.mesh.position.x + 3, 3, as.mesh.position.z);
+          emitParticle(sp, new THREE.Vector3(3, 1, (Math.random() - 0.5) * 0.5), GRAIN_COLORS[as.grainType]);
+        }
+      }
+      if (as.amount <= 0) {
+        as.isUnloading = false;
+        as.grainType = -1;
+        as.amount = 0;
+      }
+    }
+    // Update auto silo fill visual
+    const fillH = (as.amount / as.capacity) * 7;
+    as.fill.scale.y = Math.max(0.001, fillH);
+    as.fill.position.y = 0.2 + fillH / 2;
+    if (as.grainType >= 0) {
+      as.fillMat.color.setHex(GRAIN_COLORS[as.grainType]);
+      as.fillMat.emissive.setHex(GRAIN_COLORS[as.grainType]);
+    }
+  }
+
+  // Update train
+  if (activeTrain) {
+    const tr = activeTrain;
+    const tud = tr.userData;
+    if (tud.state === 'arriving') {
+      const target = tud.targetZ;
+      if (tr.position.z < target - 0.5) {
+        tr.position.z += 8 * dt * speedMult;
+      } else {
+        tud.state = 'unloading';
+        tud.waitTime = 0;
+      }
+    } else if (tud.state === 'unloading') {
+      const rate = 15 * dt * speedMult;
+      const amt = Math.min(rate, tud.load);
+      tud.load -= amt;
+      // Direct to main silos
+      const ms = mainSilos.find(s =>
+        (s.grainType === tud.grainType || s.grainType === -1) && s.amount < s.capacity
+      );
+      if (ms) {
+        ms.amount += amt;
+        ms.grainType = tud.grainType;
+        if (Math.random() < 0.15) {
+          const sp = new THREE.Vector3(tr.position.x + 5, 2, tr.position.z);
+          emitParticle(sp, new THREE.Vector3(4, 2, (Math.random() - 0.5) * 2), GRAIN_COLORS[tud.grainType]);
+        }
+      }
+      if (tud.load <= 0) {
+        tud.state = 'leaving';
+      }
+    } else if (tud.state === 'leaving') {
+      tr.position.z += 8 * dt * speedMult;
+      if (tr.position.z > 70) {
+        scene.remove(tr);
+        activeTrain = null;
+      }
+    }
+  }
+
+  // Update main silo visuals
+  let totalFill = 0, totalCap = 0;
+  for (const ms of mainSilos) {
+    const fillH = (ms.amount / ms.capacity) * 11;
+    ms.fill.scale.y = Math.max(0.001, fillH);
+    ms.fill.position.y = 0.2 + fillH / 2;
+    if (ms.grainType >= 0) {
+      ms.fillMat.color.setHex(GRAIN_COLORS[ms.grainType]);
+      ms.fillMat.emissive.setHex(GRAIN_COLORS[ms.grainType]);
+    }
+    totalFill += ms.amount;
+    totalCap += ms.capacity;
+  }
+
+  // Update ships
+  for (let i = ships.length - 1; i >= 0; i--) {
+    const ship = ships[i];
+    const sud = ship.userData;
+
+    if (sud.arriving) {
+      if (ship.position.x > sud.targetX + 0.3) {
+        ship.position.x -= 4 * dt * speedMult;
+      } else {
+        ship.position.x = sud.targetX;
+        sud.arriving = false;
+        sud.loading = true;
+      }
+      // Gentle bob
+      ship.position.y = -0.5 + Math.sin(simTime * 0.5 + i) * 0.15;
+    } else if (sud.loading) {
+      ship.position.y = -0.5 + Math.sin(simTime * 0.5 + i) * 0.15;
+
+      let allFull = true;
+      for (const bilge of sud.bilges) {
+        if (bilge.amount < bilge.capacity) {
+          allFull = false;
+          // Pull from matching main silo
+          const ms = mainSilos.find(s => s.grainType === bilge.grainType && s.amount > 0);
+          if (ms) {
+            const rate = 10 * dt * speedMult;
+            const amt = Math.min(rate, ms.amount, bilge.capacity - bilge.amount);
+            ms.amount -= amt;
+            bilge.amount += amt;
+            if (ms.amount <= 0) { ms.grainType = -1; ms.amount = 0; }
+            // Particles
+            if (Math.random() < 0.15) {
+              const sp = new THREE.Vector3(32, 4, ship.position.z);
+              emitParticle(sp, new THREE.Vector3(3, 1, (Math.random() - 0.5)), GRAIN_COLORS[bilge.grainType]);
+            }
+          }
+        }
+        // Update bilge fill visual
+        const fillH = (bilge.amount / bilge.capacity) * 2.2;
+        bilge.fill.scale.y = Math.max(0.001, fillH);
+        bilge.fill.position.y = 2.2 + fillH / 2;
+      }
+
+      if (allFull) {
+        sud.loading = false;
+        sud.loaded = true;
+        sud.departTime = simTime;
+        kpi.ships++;
+      }
+    } else if (sud.loaded) {
+      ship.position.y = -0.5 + Math.sin(simTime * 0.5 + i) * 0.15;
+      if (simTime - sud.departTime > 30) {
+        ship.position.x += 5 * dt * speedMult;
+        if (ship.position.x > 100) {
+          scene.remove(ship);
+          ships.splice(i, 1);
+        }
+      }
+    }
+  }
+
+  updateParticles(dt);
+  updateHUD(totalFill, totalCap);
+}
+
+// ── HUD UPDATE ──
+function updateHUD(totalFill, totalCap) {
+  const mins = Math.floor(simTime / 60);
+  const secs = Math.floor(simTime % 60);
+  document.getElementById('kpi-time').textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
+  document.getElementById('kpi-trucks').textContent = kpi.trucks;
+  document.getElementById('kpi-trains').textContent = kpi.trains;
+  document.getElementById('kpi-ships').textContent = kpi.ships;
+  document.getElementById('kpi-ontime').textContent = kpi.onTime;
+  document.getElementById('kpi-early').textContent = kpi.early;
+  document.getElementById('kpi-late').textContent = kpi.late;
+  document.getElementById('kpi-noshow').textContent = kpi.noShow;
+  document.getElementById('kpi-fill').textContent = totalCap > 0 ? Math.round((totalFill / totalCap) * 100) + '%' : '0%';
+
+  // Appointment slots
+  const slotList = document.getElementById('slot-list');
+  slotList.innerHTML = appointmentSlots.slice(-6).map(s => {
+    const m = Math.floor(s.time / 60);
+    const sec = Math.floor(s.time % 60);
+    const full = s.trucks >= MAX_PER_SLOT;
+    return `<div class="slot-row">
+      <span class="slot-time">${m}:${sec.toString().padStart(2, '0')}</span>
+      <span class="slot-count" style="color:${full ? '#f44336' : '#4caf50'}">${s.trucks}/${MAX_PER_SLOT}</span>
+    </div>`;
+  }).join('');
+}
+
+// ── CONTROLS ──
+window.toggleSpeed = () => {
+  const speeds = [1, 2, 5, 10];
+  const idx = speeds.indexOf(speedMult);
+  speedMult = speeds[(idx + 1) % speeds.length];
+  document.getElementById('btn-speed').textContent = `${speedMult}x SPEED`;
+};
+window.togglePause = () => {
+  paused = !paused;
+  const btn = document.getElementById('btn-pause');
+  btn.textContent = paused ? 'RESUME' : 'PAUSE';
+  btn.classList.toggle('active', paused);
+};
+window.cycleView = () => {
+  autoRotate = !autoRotate;
+  controls.autoRotate = autoRotate;
+  controls.autoRotateSpeed = 1.5;
+  document.getElementById('btn-view').classList.toggle('active', autoRotate);
+};
+
+// ── RESIZE ──
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+// ── ANIMATION LOOP ──
+const clock = new THREE.Clock();
+function animate() {
+  requestAnimationFrame(animate);
+  const dt = Math.min(clock.getDelta(), 0.05);
+  controls.update();
+  updateSim(dt);
+  renderer.render(scene, camera);
+}
+animate();
+</script>
+</body>
+</html>

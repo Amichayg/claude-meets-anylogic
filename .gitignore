@@ -1,0 +1,8 @@
+.DS_Store
+*.class
+*.jar
+*.log
+thumbs.db
+node_modules/
+.idea/
+*.iml
